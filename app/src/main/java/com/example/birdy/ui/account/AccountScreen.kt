@@ -37,6 +37,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,122 +60,143 @@ private val OrangeSec6 = Color(0xFFE5E5EA)
 private val OrangeSec7 = Color(0xFF1C1C1E)
 private val OrangeSec3 = Color(0xFFFF9500)
 
+// Navigation pages for Account sub-screens
+enum class AccountPage {
+    Main, Help, Wallet, Pass, ManageAccount
+}
+
 // Matches iOS ProfessionalSettings.swift
 @Composable
 fun AccountScreen(
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(OrangeSec5)
-            .verticalScroll(rememberScrollState())
-    ) {
-        // MARK: - Profile Section
-        ProfileCard(
-            name = "John Doe",
-            rating = 4.95f,
-            onClick = { /* TODO: navigate to profile */ }
+    var currentPage by remember { mutableStateOf(AccountPage.Main) }
+
+    // Route to the correct sub-page
+    when (currentPage) {
+        AccountPage.Help -> HelpScreen(onBack = { currentPage = AccountPage.Main })
+        AccountPage.Wallet -> WalletScreen(onBack = { currentPage = AccountPage.Main })
+        AccountPage.Pass -> PassScreen(onBack = { currentPage = AccountPage.Main })
+        AccountPage.ManageAccount -> ManageAccountScreen(
+            onBack = { currentPage = AccountPage.Main },
+            onSignIn = { /* TODO */ },
+            onSignOut = { /* TODO */ },
+            onDeleteAccount = { /* TODO */ }
         )
+        AccountPage.Main -> {
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .background(OrangeSec5)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                // MARK: - Profile Section
+                ProfileCard(
+                    name = "John Doe",
+                    rating = 4.95f,
+                    onClick = { /* TODO: navigate to profile */ }
+                )
 
-        Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-        // MARK: - Action Buttons Row (Help, Wallet, PassView, Settings)
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-        ) {
-            ActionButton(
-                title = "Help",
-                icon = Icons.Default.HelpOutline,
-                onClick = { /* TODO */ },
-                modifier = Modifier.weight(1f)
-            )
-            ActionButton(
-                title = "Wallet",
-                icon = Icons.Default.Wallet,
-                onClick = { /* TODO */ },
-                modifier = Modifier.weight(1f)
-            )
-            ActionButton(
-                title = "PassView",
-                icon = Icons.Default.Shield,
-                onClick = { /* TODO */ },
-                modifier = Modifier.weight(1f)
-            )
-            ActionButton(
-                title = "Settings",
-                icon = Icons.Default.Settings,
-                onClick = { /* TODO */ },
-                modifier = Modifier.weight(1f)
-            )
+                // MARK: - Action Buttons Row (Help, Wallet, PassView, Settings)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    ActionButton(
+                        title = "Help",
+                        icon = Icons.Default.HelpOutline,
+                        onClick = { currentPage = AccountPage.Help },
+                        modifier = Modifier.weight(1f)
+                    )
+                    ActionButton(
+                        title = "Wallet",
+                        icon = Icons.Default.Wallet,
+                        onClick = { currentPage = AccountPage.Wallet },
+                        modifier = Modifier.weight(1f)
+                    )
+                    ActionButton(
+                        title = "PassView",
+                        icon = Icons.Default.Shield,
+                        onClick = { currentPage = AccountPage.Pass },
+                        modifier = Modifier.weight(1f)
+                    )
+                    ActionButton(
+                        title = "Settings",
+                        icon = Icons.Default.Settings,
+                        onClick = { /* TODO */ },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // MARK: - More ways to earn
+                SectionHeader(title = "More ways to earn")
+                SectionCard {
+                    ListItemRow(
+                        title = "Settings Test pages",
+                        icon = Icons.Default.HourglassEmpty,
+                        onClick = { /* TODO */ }
+                    )
+                    ListItemRow(
+                        title = "Referral",
+                        icon = Icons.Default.CardGiftcard,
+                        showDivider = false,
+                        onClick = { /* TODO */ }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // MARK: - Account
+                SectionHeader(title = "Account")
+                SectionCard {
+                    ListItemRow(
+                        title = "Sign In or Register",
+                        icon = Icons.Default.Person,
+                        showDivider = false,
+                        onClick = { currentPage = AccountPage.ManageAccount }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // MARK: - Manage
+                SectionHeader(title = "Manage")
+                SectionCard {
+                    ListItemRow(
+                        title = "Notifications",
+                        icon = Icons.Default.Notifications,
+                        onClick = { /* TODO */ }
+                    )
+                    ListItemRow(
+                        title = "Language",
+                        icon = Icons.Default.Language,
+                        showDivider = false,
+                        onClick = { /* TODO */ }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // MARK: - Resources
+                SectionHeader(title = "Resources")
+                SectionCard {
+                    ListItemRow(
+                        title = "Bug Reporter",
+                        icon = Icons.Default.Adb,
+                        showDivider = false,
+                        onClick = { /* TODO */ }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(80.dp))
+            }
         }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // MARK: - More ways to earn
-        SectionHeader(title = "More ways to earn")
-        SectionCard {
-            ListItemRow(
-                title = "Settings Test pages",
-                icon = Icons.Default.HourglassEmpty,
-                onClick = { /* TODO */ }
-            )
-            ListItemRow(
-                title = "Referral",
-                icon = Icons.Default.CardGiftcard,
-                showDivider = false,
-                onClick = { /* TODO */ }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // MARK: - Account
-        SectionHeader(title = "Account")
-        SectionCard {
-            ListItemRow(
-                title = "Sign In or Register",
-                icon = Icons.Default.Person,
-                showDivider = false,
-                onClick = { /* TODO */ }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // MARK: - Manage
-        SectionHeader(title = "Manage")
-        SectionCard {
-            ListItemRow(
-                title = "Notifications",
-                icon = Icons.Default.Notifications,
-                onClick = { /* TODO */ }
-            )
-            ListItemRow(
-                title = "Language",
-                icon = Icons.Default.Language,
-                showDivider = false,
-                onClick = { /* TODO */ }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // MARK: - Resources
-        SectionHeader(title = "Resources")
-        SectionCard {
-            ListItemRow(
-                title = "Bug Reporter",
-                icon = Icons.Default.Adb,
-                showDivider = false,
-                onClick = { /* TODO */ }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(80.dp))
     }
 }
 
