@@ -35,10 +35,12 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.birdy.R
 import com.example.birdy.data.ExploreCategory
 import com.example.birdy.data.ExploreData
 
@@ -162,8 +164,9 @@ fun ExploreCategoryCard(
             .clip(RoundedCornerShape(20.dp))
             .clickable { onClick() }
     ) {
-        // Background image
+        // Background image — load from URL or local drawable (matching iOS bundled assets)
         val isUrl = category.imageName.startsWith("http")
+        val localDrawableRes = localDrawableRes(category.imageName)
 
         if (isUrl) {
             AsyncImage(
@@ -172,8 +175,15 @@ fun ExploreCategoryCard(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
+        } else if (localDrawableRes != 0) {
+            androidx.compose.foundation.Image(
+                painter = painterResource(id = localDrawableRes),
+                contentDescription = category.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
         } else {
-            // Local drawable placeholder (colored box with icon)
+            // Fallback: colored placeholder
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -214,5 +224,23 @@ fun ExploreCategoryCard(
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 16.dp)
         )
+    }
+}
+
+// Maps iOS asset names to Android drawable resource IDs
+// Matches the bundled images in res/drawable/ copied from iOS Assets.xcassets
+private fun localDrawableRes(imageName: String): Int {
+    return when (imageName) {
+        "FastFood" -> R.drawable.fast_food
+        "Pizza" -> R.drawable.pizza
+        "Burger" -> R.drawable.burger
+        "Cheesecake" -> R.drawable.cheesecake
+        "Mexican" -> R.drawable.mexican
+        "Indian-food" -> R.drawable.indian_food
+        "Chicken" -> R.drawable.chicken
+        "Chinese" -> R.drawable.chinese
+        "Sandwich" -> R.drawable.sandwich
+        "Coffee" -> R.drawable.coffee
+        else -> 0 // no local drawable
     }
 }
