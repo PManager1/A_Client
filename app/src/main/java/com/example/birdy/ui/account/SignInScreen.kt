@@ -1,8 +1,8 @@
 package com.example.birdy.ui.account
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -23,22 +24,32 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.birdy.data.AuthManager
+import com.example.birdy.data.Config
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 
 private val OrangeTitle = Color(0xFFF27836)
 private val OrangeSecNavyBlue = Color(0xFF1B2A4A)
@@ -52,10 +63,15 @@ fun SignInScreen(
     onOtpSent: (String) -> Unit = {},
     onGuestLogin: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     var phoneNumber by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
     var demoLoading by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    var successMessage by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
 
     Column(
@@ -176,7 +192,7 @@ fun SignInScreen(
                 )
             ) {
                 Text(
-                    text = if (loading) "Sending..." else "Send me OTP",
+                    text = "Send me OTP",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -186,7 +202,7 @@ fun SignInScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Guest Login button
+        // Guest Login button — matches iOS handleDemoLogin()
         if (demoLoading) {
             CircularProgressIndicator(
                 modifier = Modifier.padding(16.dp)
@@ -195,9 +211,17 @@ fun SignInScreen(
             Button(
                 onClick = {
                     demoLoading = true
-                    // TODO: call demo login API
-                    onGuestLogin()
-                    demoLoading = false
+                    scope.launch {
+                        val result = handleDemoLogin(context)
+                        demoLoading = false
+                        if (result.first) {
+                            // Token saved successfully — show success dialog
+                            successMessage = result.second
+                            showSuccessDialog = true
+                        } else {
+                            errorMessage = result.second
+                        }
+                    }
                 },
                 enabled = !demoLoading,
                 modifier = Modifier
@@ -231,6 +255,94 @@ fun SignInScreen(
         )
 
         Spacer(modifier = Modifier.weight(1f))
+    }
+
+    // Success dialog — matches iOS showDemoSuccessAlert
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showSuccessDialog = false
+                onGuestLogin()
+            },
+            title = {
+                Text(
+                    text = "Success",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(successMessage)
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showSuccessDialog = false
+                        onGuestLogin()
+                    }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+}
+
+// ── Guest Login — mirrors iOS handleDemoLogin() ──────────────────
+// Returns (success: Boolean, message: String)
+private suspend fun handleDemoLogin(context: android.content.Context): Pair<Boolean, String> {
+    return withContext(Dispatchers.IO) {
+        try {
+            val url = URL("${Config.API_BASE_URL}/demo-login")
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                setRequestProperty("Content-Type", "application/json")
+                doOutput = true
+                connectTimeout = 15000
+                readTimeout = 15000
+            }
+
+            // Same body as iOS: {"phoneNumber": "6502003406"}
+            val body = """{"phoneNumber":"6502003406"}"""
+            conn.outputStream.use { os ->
+                os.write(body.toByteArray(Charsets.UTF_8))
+            }
+
+            val statusCode = conn.responseCode
+            val responseStr = if (statusCode in 200..299) {
+                conn.inputStream.bufferedReader().readText()
+            } else {
+                conn.errorStream?.bufferedReader()?.readText() ?: "HTTP $statusCode"
+            }
+            conn.disconnect()
+
+            if (statusCode == 200) {
+                val json = JSONObject(responseStr)
+                val token = json.optString("token", "")
+                val message = json.optString("message", "Demo login successful!")
+
+                if (token.isNotEmpty()) {
+                    // Save token (same as iOS AuthManager.shared.setToken(token))
+                    AuthManager.setToken(token, context)
+
+                    // Extract user info if present
+                    if (json.has("user")) {
+                        val user = json.getJSONObject("user")
+                        AuthManager.setUserFirstName(user.optString("firstName", ""))
+                        AuthManager.setUserLastName(user.optString("lastName", ""))
+                        AuthManager.setUserEmail(user.optString("email", ""))
+                        AuthManager.setUserID(user.optString("_id", ""))
+                    }
+
+                    Pair(true, message)
+                } else {
+                    Pair(false, "No token in response")
+                }
+            } else {
+                Pair(false, "Login failed: HTTP $statusCode")
+            }
+        } catch (e: Exception) {
+            Pair(false, "Connection error: ${e.localizedMessage}")
+        }
     }
 }
 

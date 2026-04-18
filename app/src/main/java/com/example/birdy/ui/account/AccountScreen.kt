@@ -46,9 +46,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.birdy.data.AuthManager
 import java.util.Locale
 
 // iOS color constants
@@ -71,6 +73,9 @@ fun AccountScreen(
     modifier: Modifier = Modifier
 ) {
     var currentPage by remember { mutableStateOf(AccountPage.Main) }
+    // Bump this after login/logout to force recomposition of profile card
+    var refreshKey by remember { mutableStateOf(0) }
+    val context = LocalContext.current
 
     // Route to the correct sub-page
     when (currentPage) {
@@ -86,17 +91,37 @@ fun AccountScreen(
         AccountPage.SignIn -> SignInScreen(
             onBack = { currentPage = AccountPage.ManageAccount },
             onOtpSent = { /* TODO: navigate to OTP verification */ },
-            onGuestLogin = { /* TODO: handle guest login */ }
+            onGuestLogin = {
+                refreshKey++                        // Force profile refresh
+                currentPage = AccountPage.Main      // Matches iOS: dismiss → home tab
+            }
         )
         AccountPage.SignOut -> SignOutScreen(
             onBack = { currentPage = AccountPage.ManageAccount },
-            onConfirmSignOut = { /* TODO: clear auth, go to main */ }
+            onConfirmSignOut = {
+                AuthManager.clearAll()               // Clear stored token & profile
+                refreshKey++                          // Force profile refresh
+                currentPage = AccountPage.Main        // Matches iOS: sign out → home
+            }
         )
         AccountPage.DeleteAccount -> DeleteAccountScreen(
             onBack = { currentPage = AccountPage.ManageAccount },
             onAccountDeleted = { currentPage = AccountPage.SignIn }
         )
         AccountPage.Main -> {
+            // Read user info from AuthManager — re-read when refreshKey changes (after login/logout)
+            val displayName = remember(refreshKey) {
+                if (AuthManager.isLoggedIn(context)) {
+                    val first = AuthManager.getUserFirstName()
+                    val last = AuthManager.getUserLastName()
+                    val fullName = "$first $last".trim()
+                    if (fullName.isNotBlank()) fullName else "Guest User"
+                } else {
+                    "Sign In"
+                }
+            }
+            val isLoggedIn = remember(refreshKey) { AuthManager.isLoggedIn(context) }
+
             Column(
                 modifier = modifier
                     .fillMaxSize()
@@ -105,8 +130,9 @@ fun AccountScreen(
             ) {
                 // MARK: - Profile Section
                 ProfileCard(
-                    name = "John Doe",
+                    name = displayName,
                     rating = 4.95f,
+                    isLoggedIn = isLoggedIn,
                     onClick = { /* TODO: navigate to profile */ }
                 )
 
@@ -219,6 +245,7 @@ fun AccountScreen(
 fun ProfileCard(
     name: String,
     rating: Float,
+    isLoggedIn: Boolean = false,
     onClick: () -> Unit = {}
 ) {
     Surface(
@@ -233,40 +260,44 @@ fun ProfileCard(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(16.dp)
         ) {
-            // Avatar circle with border + diamond badge
+            // Avatar circle — shows orange BG when logged in, gray when not
             Box {
-                // Profile image placeholder
                 Box(
                     modifier = Modifier
                         .size(80.dp)
                         .clip(CircleShape)
-                        .background(Color.Gray.copy(alpha = 0.2f)),
+                        .background(
+                            if (isLoggedIn) OrangeTitle.copy(alpha = 0.15f)
+                            else Color.Gray.copy(alpha = 0.2f)
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = "Profile",
-                        tint = Color.Gray.copy(alpha = 0.5f),
+                        tint = if (isLoggedIn) OrangeTitle else Color.Gray.copy(alpha = 0.5f),
                         modifier = Modifier
                             .size(60.dp)
                     )
                 }
-                // Diamond badge
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .offset(x = 4.dp, y = 4.dp)
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(Color.White),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Diamond,
-                        contentDescription = "Pro",
-                        tint = OrangeSecNavyBlue,
-                        modifier = Modifier.size(14.dp)
-                    )
+                // Diamond badge (only show when logged in)
+                if (isLoggedIn) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .offset(x = 4.dp, y = 4.dp)
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .background(Color.White),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Diamond,
+                            contentDescription = "Pro",
+                            tint = OrangeSecNavyBlue,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
                 }
             }
 
@@ -275,7 +306,7 @@ fun ProfileCard(
             Column {
                 Text(
                     text = name,
-                    fontSize = 34.sp,
+                    fontSize = if (isLoggedIn) 34.sp else 28.sp,
                     fontWeight = FontWeight.Bold,
                     color = OrangeSecNavyBlue
                 )
@@ -290,10 +321,10 @@ fun ProfileCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = String.format(Locale.US, "%.2f", rating),
-                        fontSize = 24.sp,
+                        text = if (isLoggedIn) String.format(Locale.US, "%.2f", rating) else "Tap to sign in",
+                        fontSize = if (isLoggedIn) 24.sp else 16.sp,
                         fontWeight = FontWeight.Normal,
-                        color = OrangeSecNavyBlue
+                        color = if (isLoggedIn) OrangeSecNavyBlue else OrangeSec2
                     )
                 }
             }
