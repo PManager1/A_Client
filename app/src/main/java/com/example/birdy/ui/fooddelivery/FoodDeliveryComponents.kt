@@ -1,0 +1,442 @@
+package com.example.birdy.ui.fooddelivery
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.birdy.data.DeliveryRestaurant
+import com.example.birdy.data.FoodCategory
+import kotlinx.coroutines.launch
+import java.util.Locale
+
+// ============================================================================
+// MARK: - Header View
+// Matches iOS: HeaderView (address pin + bell + cart)
+// ============================================================================
+
+@Suppress("UNUSED")
+@Composable
+fun FoodDeliveryHeader(
+    selectedAddress: String?,
+    isLoadingAddress: Boolean,
+    onAddressClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    onCartClick: () -> Unit = {}
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        // Address section
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier
+                .weight(1f)
+                .clickable { onAddressClick() }
+        ) {
+            Icon(
+                imageVector = Icons.Default.LocationOn,
+                contentDescription = "Location",
+                tint = Color.Black,
+                modifier = Modifier.size(20.dp)
+            )
+
+            if (isLoadingAddress) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text(
+                    text = selectedAddress ?: "Select Address",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (selectedAddress != null) Color.Black else Color.Gray,
+                    maxLines = 1
+                )
+            }
+
+            Text(
+                text = "▾",
+                fontSize = 12.sp,
+                color = Color.Gray
+            )
+        }
+
+        // Notification bell with red dot
+        Box(contentAlignment = Alignment.TopEnd) {
+            Icon(
+                imageVector = Icons.Default.Notifications,
+                contentDescription = "Notifications",
+                modifier = Modifier.size(24.dp)
+            )
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(Color.Red, CircleShape)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Cart icon
+        Icon(
+            imageVector = Icons.Default.ShoppingCart,
+            contentDescription = "Cart",
+            modifier = Modifier
+                .size(24.dp)
+                .clickable { onCartClick() }
+        )
+    }
+}
+
+// ============================================================================
+// MARK: - Search Bar
+// Matches iOS: SearchBar (disabled, tappable overlay)
+// ============================================================================
+
+@Suppress("UNUSED")
+@Composable
+fun FoodSearchBar(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color(0xFFF3F3F3), RoundedCornerShape(25.dp))
+            .clickable { onClick() }
+            .padding(12.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Search,
+            contentDescription = "Search",
+            tint = Color.Gray
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = "Search \"Dessert\"",
+            color = Color.Gray,
+            fontSize = 16.sp,
+            modifier = Modifier.weight(1f)
+        )
+        Icon(
+            imageVector = Icons.Default.Search,
+            contentDescription = "Map",
+            tint = Color.Black
+        )
+    }
+}
+
+// ============================================================================
+// MARK: - Category Item
+// Matches iOS: CategoryItem (emoji + name)
+// ============================================================================
+
+@Composable
+fun FoodCategoryItem(
+    category: FoodCategory,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.clickable { onClick() }
+    ) {
+        Text(
+            text = category.emoji,
+            fontSize = 32.sp,
+            modifier = Modifier.padding(6.dp)
+        )
+        Text(
+            text = category.name,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.DarkGray
+        )
+    }
+}
+
+// ============================================================================
+// MARK: - Category Horizontal List
+// ============================================================================
+
+@Suppress("UNUSED")
+@Composable
+fun FoodCategoryList(
+    categories: List<FoodCategory>,
+    modifier: Modifier = Modifier,
+    onCategoryClick: (FoodCategory) -> Unit = {}
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier.padding(horizontal = 16.dp)
+    ) {
+        itemsIndexed(categories) { _, category ->
+            FoodCategoryItem(
+                category = category,
+                onClick = { onCategoryClick(category) }
+            )
+        }
+    }
+}
+
+// ============================================================================
+// MARK: - Promo Banner View
+// Matches iOS: PromoBannerView (blue gradient card)
+// ============================================================================
+
+@Suppress("UNUSED")
+@Composable
+fun PromoBannerView(
+    modifier: Modifier = Modifier,
+    onOrderNow: () -> Unit = {}
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                Brush.horizontalGradient(
+                    colors = listOf(Color(0xFF1565C0), Color(0xFF1976D2), Color(0xFF1E88E5))
+                ),
+                RoundedCornerShape(15.dp)
+            )
+            .padding(16.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Buy 2, save $2 on select\nPringles and Cheez-It items",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Now - 4/6. Terms apply.",
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 13.sp
+                )
+                Box(
+                    modifier = Modifier
+                        .background(Color.White, RoundedCornerShape(50.dp))
+                        .clickable { onOrderNow() }
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = "Order now",
+                        color = Color.Red,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+            // Placeholder for promo image
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+            )
+        }
+    }
+}
+
+// ============================================================================
+// MARK: - Restaurant Card
+// Matches iOS: RestaurantCard
+// ============================================================================
+
+@Composable
+fun RestaurantCard(
+    restaurant: DeliveryRestaurant,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
+) {
+    Column(
+        modifier = modifier
+            .width(280.dp)
+            .clickable { onClick() }
+    ) {
+        // Image placeholder with heart icon
+        Box(
+            modifier = Modifier
+                .width(280.dp)
+                .height(160.dp)
+                .background(Color(restaurant.imagePlaceholder).copy(alpha = 0.3f), RoundedCornerShape(15.dp))
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(10.dp)
+                    .background(Color.White, CircleShape)
+                    .padding(10.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FavoriteBorder,
+                    contentDescription = "Favorite",
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Restaurant name
+        Text(
+            text = restaurant.name,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+
+        Spacer(modifier = Modifier.height(2.dp))
+
+        // Rating + details
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = String.format(Locale.US, "%.1f", restaurant.rating),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Gray
+            )
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = null,
+                tint = Color.Yellow,
+                modifier = Modifier.size(12.dp)
+            )
+            Text(
+                text = "(${restaurant.reviews}) • ${restaurant.distance} • ${restaurant.deliveryTime}",
+                fontSize = 12.sp,
+                color = Color.Gray
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Delivery fee badge
+        Text(
+            text = "${restaurant.deliveryFee} delivery fee",
+            fontSize = 12.sp,
+            color = Color.Gray,
+            modifier = Modifier
+                .background(Color(0xFFF3F3F3), RoundedCornerShape(5.dp))
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+}
+
+// ============================================================================
+// MARK: - Restaurant Section (reusable for all 4 sections)
+// Matches iOS: Section 1-4 pattern (title + arrow + horizontal scroll)
+// ============================================================================
+
+@Suppress("UNUSED")
+@Composable
+fun RestaurantSection(
+    title: String,
+    restaurants: List<DeliveryRestaurant>,
+    modifier: Modifier = Modifier,
+    onRestaurantClick: (DeliveryRestaurant) -> Unit = {}
+) {
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    var currentCard by remember { mutableIntStateOf(0) }
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Section header with title + arrow button
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "Next",
+                tint = Color.Gray,
+                modifier = Modifier
+                    .size(28.dp)
+                    .clickable {
+                        currentCard = (currentCard + 1) % restaurants.size
+                        coroutineScope.launch {
+                            listState.animateScrollToItem(currentCard)
+                        }
+                    }
+            )
+        }
+
+        // Horizontal restaurant cards
+        LazyRow(
+            state = listState,
+            horizontalArrangement = Arrangement.spacedBy(15.dp),
+            modifier = Modifier.padding(horizontal = 16.dp)
+        ) {
+            itemsIndexed(restaurants) { _, restaurant ->
+                RestaurantCard(
+                    restaurant = restaurant,
+                    onClick = { onRestaurantClick(restaurant) }
+                )
+            }
+        }
+    }
+}
