@@ -62,7 +62,7 @@ private val OrangeSec3 = Color(0xFFFF9500)
 
 // Navigation pages for Account sub-screens
 enum class AccountPage {
-    Main, Help, Wallet, Pass, ManageAccount
+    Main, Help, Wallet, Pass, ManageAccount, SignIn, SignOut, DeleteAccount
 }
 
 // Matches iOS ProfessionalSettings.swift
@@ -79,9 +79,22 @@ fun AccountScreen(
         AccountPage.Pass -> PassScreen(onBack = { currentPage = AccountPage.Main })
         AccountPage.ManageAccount -> ManageAccountScreen(
             onBack = { currentPage = AccountPage.Main },
-            onSignIn = { /* TODO */ },
-            onSignOut = { /* TODO */ },
-            onDeleteAccount = { /* TODO */ }
+            onSignIn = { currentPage = AccountPage.SignIn },
+            onSignOut = { currentPage = AccountPage.SignOut },
+            onDeleteAccount = { currentPage = AccountPage.DeleteAccount }
+        )
+        AccountPage.SignIn -> SignInScreen(
+            onBack = { currentPage = AccountPage.ManageAccount },
+            onOtpSent = { /* TODO: navigate to OTP verification */ },
+            onGuestLogin = { /* TODO: handle guest login */ }
+        )
+        AccountPage.SignOut -> SignOutScreen(
+            onBack = { currentPage = AccountPage.ManageAccount },
+            onConfirmSignOut = { /* TODO: clear auth, go to main */ }
+        )
+        AccountPage.DeleteAccount -> DeleteAccountScreen(
+            onBack = { currentPage = AccountPage.ManageAccount },
+            onAccountDeleted = { currentPage = AccountPage.SignIn }
         )
         AccountPage.Main -> {
             Column(
