@@ -1,28 +1,402 @@
 package com.example.birdy.ui.account
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Adb
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Diamond
+import androidx.compose.material.icons.filled.CardGiftcard
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.filled.HourglassEmpty
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Wallet
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.util.Locale
 
+// iOS color constants
+private val OrangeSecNavyBlue = Color(0xFF1B2A4A)
+private val OrangeTitle = Color(0xFFF27836)
+private val OrangeSec2 = Color(0xFF8E8E93)
+private val OrangeSec5 = Color(0xFFF5F0EB)
+private val OrangeSec6 = Color(0xFFE5E5EA)
+private val OrangeSec7 = Color(0xFF1C1C1E)
+private val OrangeSec3 = Color(0xFFFF9500)
+
+// Matches iOS ProfessionalSettings.swift
 @Composable
 fun AccountScreen(
     modifier: Modifier = Modifier
 ) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier.fillMaxSize()
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(OrangeSec5)
+            .verticalScroll(rememberScrollState())
+    ) {
+        // MARK: - Profile Section
+        ProfileCard(
+            name = "John Doe",
+            rating = 4.95f,
+            onClick = { /* TODO: navigate to profile */ }
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // MARK: - Action Buttons Row (Help, Wallet, PassView, Settings)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        ) {
+            ActionButton(
+                title = "Help",
+                icon = Icons.Default.HelpOutline,
+                onClick = { /* TODO */ },
+                modifier = Modifier.weight(1f)
+            )
+            ActionButton(
+                title = "Wallet",
+                icon = Icons.Default.Wallet,
+                onClick = { /* TODO */ },
+                modifier = Modifier.weight(1f)
+            )
+            ActionButton(
+                title = "PassView",
+                icon = Icons.Default.Shield,
+                onClick = { /* TODO */ },
+                modifier = Modifier.weight(1f)
+            )
+            ActionButton(
+                title = "Settings",
+                icon = Icons.Default.Settings,
+                onClick = { /* TODO */ },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // MARK: - More ways to earn
+        SectionHeader(title = "More ways to earn")
+        SectionCard {
+            ListItemRow(
+                title = "Settings Test pages",
+                icon = Icons.Default.HourglassEmpty,
+                onClick = { /* TODO */ }
+            )
+            ListItemRow(
+                title = "Referral",
+                icon = Icons.Default.CardGiftcard,
+                showDivider = false,
+                onClick = { /* TODO */ }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // MARK: - Account
+        SectionHeader(title = "Account")
+        SectionCard {
+            ListItemRow(
+                title = "Sign In or Register",
+                icon = Icons.Default.Person,
+                showDivider = false,
+                onClick = { /* TODO */ }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // MARK: - Manage
+        SectionHeader(title = "Manage")
+        SectionCard {
+            ListItemRow(
+                title = "Notifications",
+                icon = Icons.Default.Notifications,
+                onClick = { /* TODO */ }
+            )
+            ListItemRow(
+                title = "Language",
+                icon = Icons.Default.Language,
+                showDivider = false,
+                onClick = { /* TODO */ }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // MARK: - Resources
+        SectionHeader(title = "Resources")
+        SectionCard {
+            ListItemRow(
+                title = "Bug Reporter",
+                icon = Icons.Default.Adb,
+                showDivider = false,
+                onClick = { /* TODO */ }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(80.dp))
+    }
+}
+
+// MARK: - Profile Card (matches iOS profileSectionView)
+
+@Composable
+fun ProfileCard(
+    name: String,
+    rating: Float,
+    onClick: () -> Unit = {}
+) {
+    Surface(
+        shape = RoundedCornerShape(15.dp),
+        color = Color.White,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clickable { onClick() }
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // Avatar circle with border + diamond badge
+            Box {
+                // Profile image placeholder
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(Color.Gray.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Profile",
+                        tint = Color.Gray.copy(alpha = 0.5f),
+                        modifier = Modifier
+                            .size(60.dp)
+                    )
+                }
+                // Diamond badge
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset(x = 4.dp, y = 4.dp)
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Diamond,
+                        contentDescription = "Pro",
+                        tint = OrangeSecNavyBlue,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(15.dp))
+
+            Column {
+                Text(
+                    text = name,
+                    fontSize = 34.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = OrangeSecNavyBlue
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = "Rating",
+                        tint = OrangeSec3,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = String.format(Locale.US, "%.2f", rating),
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = OrangeSecNavyBlue
+                    )
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Action Button (matches iOS ActionButton_DP)
+
+@Composable
+fun ActionButton(
+    title: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
+) {
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = OrangeSec5,
+        modifier = modifier.clickable { onClick() }
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 15.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = OrangeSecNavyBlue,
+                modifier = Modifier.size(28.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = title,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Normal,
+                color = OrangeSecNavyBlue
+            )
+        }
+    }
+}
+
+// MARK: - Section Header (matches iOS PS_SectionHeader)
+
+@Composable
+fun SectionHeader(title: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Text(
-            text = "Account",
-            fontSize = 24.sp,
+            text = title.uppercase(),
+            fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.Black
+            color = OrangeSecNavyBlue
         )
+    }
+}
+
+// MARK: - Section Card (white rounded container)
+
+@Composable
+fun SectionCard(
+    content: @Composable () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(15.dp),
+        color = Color.White,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        Column {
+            content()
+        }
+    }
+}
+
+// MARK: - List Item Row (matches iOS ListItem)
+
+@Composable
+fun ListItemRow(
+    title: String,
+    icon: ImageVector,
+    subtitle: String? = null,
+    showDivider: Boolean = true,
+    onClick: () -> Unit = {}
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = OrangeTitle,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = OrangeSec7
+                )
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = OrangeSec2
+                    )
+                }
+            }
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = "Navigate",
+                tint = OrangeSec2,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        if (showDivider) {
+            HorizontalDivider(
+                color = OrangeSec6,
+                thickness = 1.dp,
+                modifier = Modifier.padding(start = 50.dp)
+            )
+        }
     }
 }
