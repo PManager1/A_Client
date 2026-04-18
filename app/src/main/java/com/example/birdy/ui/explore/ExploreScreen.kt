@@ -1,28 +1,218 @@
 package com.example.birdy.ui.explore
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Fastfood
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.example.birdy.data.ExploreCategory
+import com.example.birdy.data.ExploreData
+
+// Matches iOS ExploreView.swift
+// - Top bar with "Explore" title + search icon
+// - "Go to Food Places" blue button
+// - 26 rows x 2 columns of CategoryCard tiles
 
 @Composable
 fun ExploreScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onNavigateToFoodPlaces: () -> Unit = {},
+    onNavigateToSearch: () -> Unit = {},
+    onCategoryClick: (ExploreCategory) -> Unit = {}
 ) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier.fillMaxSize()
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .statusBarsPadding()
     ) {
+        // MARK: - Top Bar
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            Text(
+                text = "Explore",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(onClick = { onNavigateToSearch() }) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search",
+                    tint = Color.Black,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
+        // MARK: - Scrollable Content
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+                .padding(top = 4.dp, bottom = 100.dp)
+        ) {
+            // "Go to Food Places" button
+            item {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF1565C0), RoundedCornerShape(12.dp))
+                        .clickable { onNavigateToFoodPlaces() }
+                        .padding(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Fastfood,
+                        contentDescription = null,
+                        tint = Color.White
+                    )
+                    Text(
+                        text = "Go to Food Places",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            // Category rows (2 cards per row)
+            items(ExploreData.categories) { row ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(20.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    ExploreCategoryCard(
+                        category = row.first,
+                        onClick = { onCategoryClick(row.first) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    ExploreCategoryCard(
+                        category = row.second,
+                        onClick = { onCategoryClick(row.second) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Category Card
+// Matches iOS CategoryCard: image + gradient overlay + title
+
+@Composable
+fun ExploreCategoryCard(
+    category: ExploreCategory,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
+) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = tween(durationMillis = 200),
+        label = "cardScale"
+    )
+
+    Box(
+        modifier = modifier
+            .height(180.dp)
+            .scale(scale)
+            .clip(RoundedCornerShape(20.dp))
+            .clickable { onClick() }
+    ) {
+        // Background image
+        val isUrl = category.imageName.startsWith("http")
+
+        if (isUrl) {
+            AsyncImage(
+                model = category.imageName,
+                contentDescription = category.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            // Local drawable placeholder (colored box with icon)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFFF0F0F0)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = category.title,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Gray
+                )
+            }
+        }
+
+        // Gradient overlay (matches iOS: clear at 50% → black.opacity(0.5) at bottom)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colorStops = arrayOf(
+                            0.5f to Color.Transparent,
+                            1.0f to Color.Black.copy(alpha = 0.5f)
+                        )
+                    )
+                )
+        )
+
+        // Title text at bottom-left
         Text(
-            text = "Explore",
-            fontSize = 24.sp,
+            text = category.title,
+            fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.Black
+            color = Color.White,
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 16.dp)
         )
     }
 }
