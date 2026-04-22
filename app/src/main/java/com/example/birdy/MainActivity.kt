@@ -25,10 +25,12 @@ import com.example.birdy.data.ExploreCategory
 import com.example.birdy.ui.explore.ExploreScreen
 import com.example.birdy.ui.explore.NewFoodPlacesScreen
 import com.example.birdy.ui.explore.SearchFoodScreen
+import com.example.birdy.ui.explore.StoreScreen
 import com.example.birdy.ui.fooddelivery.FoodDeliveryScreen
 import com.example.birdy.ui.inbox.InboxScreen
 import com.example.birdy.ui.inbox.RequestDetailScreen
 import com.example.birdy.ui.theme.BirdyTheme
+import androidx.compose.ui.platform.LocalContext
 
 // Tab indices — matches iOS NavigationFlow.swift selectedTab
 private const val TAB_HOME = 0
@@ -60,7 +62,9 @@ fun BirdyApp() {
     var showRequestDetail by remember { mutableStateOf(false) }
     var showSearchFood by remember { mutableStateOf(false) }
     var showFoodPlaces by remember { mutableStateOf(false) }
+    var showStore by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf<ExploreCategory?>(null) }
+    val context = LocalContext.current
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -73,6 +77,7 @@ fun BirdyApp() {
                     showRequestDetail = false
                     showSearchFood = false
                     showFoodPlaces = false
+                    showStore = false
                     selectedCategory = null
                 }
             )
@@ -101,12 +106,16 @@ fun BirdyApp() {
 
                 TAB_EXPLORE -> {
                     when {
+                        showStore -> {
+                            StoreScreen(
+                                onBack = { showStore = false },
+                                jsonInputStream = context.assets.open("storejson.json")
+                            )
+                        }
                         showSearchFood -> {
                             SearchFoodScreen(
                                 onBack = { showSearchFood = false },
-                                onRestaurantClick = {
-                                    // TODO: Navigate to Store page
-                                }
+                                onRestaurantClick = { showStore = true }
                             )
                         }
                         showFoodPlaces && selectedCategory != null -> {
@@ -117,9 +126,7 @@ fun BirdyApp() {
                                     selectedCategory = null
                                 },
                                 onSearchClick = { showSearchFood = true },
-                                onRestaurantClick = {
-                                    // TODO: Navigate to Store page
-                                }
+                                onRestaurantClick = { showStore = true }
                             )
                         }
                         else -> {

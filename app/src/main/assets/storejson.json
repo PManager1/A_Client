@@ -1,0 +1,49 @@
+{
+  "store_id": "UDO-MD-COLLEGEPK-001",
+  "restaurant_id": "popeyes-college-park-001",
+  "brand": "Popeyes",
+  "brand_info": {
+    "name": "Popeyes Louisiana Kitchen",
+    "logo_url": "https://e7.pngegg.com/pngimages/165/85/png-clipart-fried-chicken-buffalo-wing-popeyes-louisiana-kitchen-chicken-thumbnail.png",
+    "banner_image_url": "https://storage.googleapis.com/birdyimages/__App/Popeye-Top.png",
+    "rating": 3.8,
+    "review_count": "7k+",
+    "cuisine": "American",
+    "tags": ["U-DO Pass", "Chicken", "Fast Food"]
+  },
+  "location_info": {
+    "distance": "1.8 mi",
+    "delivery_fee": 0.0,
+    "delivery_time_est": "35 min",
+    "address": "415 Baltimore Ave, College Park, MD 20740"
+  },
+  "menu": [
+    {
+      "category_name": "Featured Items",
+      "items": [
+        { "name": "Classic Chicken Sandwich", "price": 7.99, "image_url": "https://storage.googleapis.com/birdyimages/__App/Popeyes-B1.webp" },
+        { "name": "Spicy Chicken Sandwich", "price": 8.49, "image_url": "https://storage.googleapis.com/birdyimages/__App/Popeyes-B1.webp" },
+        { "name": "Blackened Chicken Sandwich", "price": 8.99, "image_url": "https://storage.googleapis.com/birdyimages/__App/Popeyes-B1.webp" },
+        { "name": "Deluxe Chicken Sandwich", "price": 9.49, "image_url": "https://storage.googleapis.com/birdyimages/__App/Popeyes-B1.webp" }
+      ]
+    },
+    {
+      "category_name": "Popular Items",
+      "items": [
+        { "name": "Spicy Chicken Tenders - 5pc", "price": 8.99, "image_url": "https://tb-static.uber.com/prod/image-proc/processed_images/4c6c06fde277821132a9868113564d7b/c67fc65e9b4e16a553eb7574fba090f1.jpeg" },
+        { "name": "Mild Chicken Tenders - 3pc", "price": 6.49, "image_url": "https://tb-static.uber.com/prod/image-proc/processed_images/4c6c06fde277821132a9868113564d7b/c67fc65e9b4e16a553eb7574fba090f1.jpeg" },
+        { "name": "Bonafide Chicken - 2pc", "price": 7.29, "image_url": "https://tb-static.uber.com/prod/image-proc/processed_images/4c6c06fde277821132a9868113564d7b/c67fc65e9b4e16a553eb7574fba090f1.jpeg" },
+        { "name": "Handcrafted Tenders - 5pc", "price": 9.99, "image_url": "https://tb-static.uber.com/prod/image-proc/processed_images/4c6c06fde277821132a9868113564d7b/c67fc65e9b4e16a553eb7574fba090f1.jpeg" }
+      ]
+    },
+    {
+      "category_name": "Most Ordered",
+      "items": [
+        { "name": "Red Beans & Rice", "price": 3.99, "image_url": "https://storage.googleapis.com/birdyimages/__App/popeyes-nuggets.jpg" },
+        { "name": "Cajun Fries (Regular)", "price": 3.49, "image_url": "https://storage.googleapis.com/birdyimages/__App/popeyes-nuggets.jpg" },
+        { "name": "Mashed Potatoes & Gravy", "price": 3.49, "image_url": "https://storage.googleapis.com/birdyimages/__App/popeyes-nuggets.jpg" },
+        { "name": "Biscuit", "price": 1.49, "image_url": "https://storage.googleapis.com/birdyimages/__App/popeyes-nuggets.jpg" }
+      ]
+    }
+  ]
+}
