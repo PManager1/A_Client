@@ -42,7 +42,9 @@ fun FoodDeliveryScreen(
 ) {
     // Address state (stub — will connect to AddressService later)
     var selectedAddress by remember { mutableStateOf<String?>(null) }
+    var selectedAddressId by remember { mutableStateOf<String?>(null) }
     var isLoadingAddress by remember { mutableStateOf(false) }
+    var showAddressSheet by remember { mutableStateOf(false) }
 
     Box(
         modifier = modifier
@@ -59,7 +61,7 @@ fun FoodDeliveryScreen(
                 selectedAddress = selectedAddress,
                 isLoadingAddress = isLoadingAddress,
                 onAddressClick = {
-                    // TODO: Show address selection bottom sheet
+                    showAddressSheet = true
                 },
                 onCartClick = { onNavigateToCart() }
             )
@@ -126,5 +128,19 @@ fun FoodDeliveryScreen(
 
             Spacer(modifier = Modifier.height(60.dp))
         }
+    }
+
+    // MARK: - Address Selection Sheet
+    if (showAddressSheet) {
+        SelectAddressSheet(
+            currentAddressId = selectedAddressId,
+            onAddressSelected = { address ->
+                selectedAddress = address.street
+                selectedAddressId = address.id
+            },
+            onDismiss = {
+                showAddressSheet = false
+            }
+        )
     }
 }
