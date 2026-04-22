@@ -55,7 +55,8 @@ import com.example.birdy.data.CartManager
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CartSheet(
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onCheckout: () -> Unit = {}
 ) {
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = false
@@ -68,7 +69,8 @@ fun CartSheet(
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
     ) {
         Cart(
-            onDismiss = onDismiss
+            onDismiss = onDismiss,
+            onCheckout = onCheckout
         )
     }
 }
@@ -78,7 +80,8 @@ fun CartSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Cart(
-    onDismiss: () -> Unit = {}
+    onDismiss: () -> Unit = {},
+    onCheckout: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -118,7 +121,7 @@ fun Cart(
         if (CartManager.items.isEmpty()) {
             EmptyCartView(onDismiss = onDismiss)
         } else {
-            CartListView()
+            CartListView(onCheckout = onCheckout)
         }
     }
 }
@@ -188,7 +191,7 @@ private fun EmptyCartView(onDismiss: () -> Unit) {
 // MARK: - Cart List View (matches iOS cartListView)
 
 @Composable
-private fun CartListView() {
+private fun CartListView(onCheckout: () -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -307,7 +310,7 @@ private fun CartListView() {
                         ),
                         RoundedCornerShape(16.dp)
                     )
-                    .clickable { /* TODO: Navigate to checkout */ }
+                    .clickable { onCheckout() }
                     .padding(vertical = 16.dp),
                 textAlign = TextAlign.Center
             )

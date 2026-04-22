@@ -27,6 +27,7 @@ import com.example.birdy.ui.explore.NewFoodPlacesScreen
 import com.example.birdy.ui.explore.SearchFoodScreen
 import com.example.birdy.ui.explore.StoreScreen
 import com.example.birdy.ui.explore.CartSheet
+import com.example.birdy.ui.explore.CheckoutScreen
 import com.example.birdy.ui.fooddelivery.FoodDeliveryScreen
 import com.example.birdy.ui.inbox.InboxScreen
 import com.example.birdy.ui.inbox.RequestDetailScreen
@@ -65,6 +66,7 @@ fun BirdyApp() {
     var showFoodPlaces by remember { mutableStateOf(false) }
     var showStore by remember { mutableStateOf(false) }
     var showCart by remember { mutableStateOf(false) }
+    var showCheckout by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf<ExploreCategory?>(null) }
     val context = LocalContext.current
 
@@ -108,6 +110,11 @@ fun BirdyApp() {
 
                 TAB_EXPLORE -> {
                     when {
+                        showCheckout -> {
+                            CheckoutScreen(
+                                onBack = { showCheckout = false }
+                            )
+                        }
                         showStore -> {
                             StoreScreen(
                                 onBack = { showStore = false },
@@ -116,7 +123,11 @@ fun BirdyApp() {
                             )
                             if (showCart) {
                                 CartSheet(
-                                    onDismiss = { showCart = false }
+                                    onDismiss = { showCart = false },
+                                    onCheckout = {
+                                        showCart = false
+                                        showCheckout = true
+                                    }
                                 )
                             }
                         }
