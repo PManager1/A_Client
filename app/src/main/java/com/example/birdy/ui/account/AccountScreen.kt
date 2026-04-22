@@ -67,7 +67,8 @@ private val OrangeSec3 = Color(0xFFFF9500)
 
 // Navigation pages for Account sub-screens
 enum class AccountPage {
-    Main, Help, Wallet, Pass, ManageAccount, SignIn, SignOut, DeleteAccount, Profile
+    Main, Help, Wallet, Pass, ManageAccount, SignIn, SignOut, DeleteAccount, Profile,
+    Settings, Referral, Notifications, Language, BugReporter
 }
 
 // Matches iOS ProfessionalSettings.swift
@@ -116,6 +117,24 @@ fun AccountScreen(
                 refreshKey++
                 currentPage = AccountPage.Main
             }
+        )
+        AccountPage.Settings -> SettingsScreen(
+            onBack = { currentPage = AccountPage.Main },
+            onNavigateToNotifications = { currentPage = AccountPage.Notifications },
+            onNavigateToLanguage = { currentPage = AccountPage.Language },
+            onNavigateToBugReporter = { currentPage = AccountPage.BugReporter }
+        )
+        AccountPage.Referral -> ReferralScreen(
+            onBack = { currentPage = AccountPage.Main }
+        )
+        AccountPage.Notifications -> NotificationsScreen(
+            onBack = { currentPage = AccountPage.Main }
+        )
+        AccountPage.Language -> LanguageSettingsScreen(
+            onBack = { currentPage = AccountPage.Main }
+        )
+        AccountPage.BugReporter -> BugReporterScreen(
+            onBack = { currentPage = AccountPage.Main }
         )
         AccountPage.Main -> {
             // Read user info from AuthManager — re-read when refreshKey changes (after login/logout)
@@ -181,7 +200,7 @@ fun AccountScreen(
                     ActionButton(
                         title = "Settings",
                         icon = Icons.Default.Settings,
-                        onClick = { /* TODO */ },
+                        onClick = { currentPage = AccountPage.Settings },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -194,13 +213,13 @@ fun AccountScreen(
                     ListItemRow(
                         title = "Settings Test pages",
                         icon = Icons.Default.HourglassEmpty,
-                        onClick = { /* TODO */ }
+                        onClick = { currentPage = AccountPage.Settings }
                     )
                     ListItemRow(
                         title = "Referral",
                         icon = Icons.Default.CardGiftcard,
                         showDivider = false,
-                        onClick = { /* TODO */ }
+                        onClick = { currentPage = AccountPage.Referral }
                     )
                 }
 
@@ -225,13 +244,13 @@ fun AccountScreen(
                     ListItemRow(
                         title = "Notifications",
                         icon = Icons.Default.Notifications,
-                        onClick = { /* TODO */ }
+                        onClick = { currentPage = AccountPage.Notifications }
                     )
                     ListItemRow(
                         title = "Language",
                         icon = Icons.Default.Language,
                         showDivider = false,
-                        onClick = { /* TODO */ }
+                        onClick = { currentPage = AccountPage.Language }
                     )
                 }
 
@@ -244,7 +263,7 @@ fun AccountScreen(
                         title = "Bug Reporter",
                         icon = Icons.Default.Adb,
                         showDivider = false,
-                        onClick = { /* TODO */ }
+                        onClick = { currentPage = AccountPage.BugReporter }
                     )
                 }
 
