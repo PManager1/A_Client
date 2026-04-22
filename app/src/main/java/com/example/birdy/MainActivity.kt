@@ -12,6 +12,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -23,6 +24,7 @@ import com.example.birdy.ui.components.BirdyBottomNavBar
 import com.example.birdy.ui.explore.ExploreScreen
 import com.example.birdy.ui.fooddelivery.FoodDeliveryScreen
 import com.example.birdy.ui.inbox.InboxScreen
+import com.example.birdy.ui.inbox.RequestDetailScreen
 import com.example.birdy.ui.theme.BirdyTheme
 
 // Tab indices — matches iOS NavigationFlow.swift selectedTab
@@ -52,6 +54,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun BirdyApp() {
     var selectedTab by remember { mutableIntStateOf(TAB_HOME) }
+    var showRequestDetail by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -61,6 +64,7 @@ fun BirdyApp() {
                 selectedIndex = selectedTab,
                 onTabSelected = { index ->
                     selectedTab = index
+                    showRequestDetail = false
                 }
             )
         }
@@ -88,7 +92,17 @@ fun BirdyApp() {
 
                 TAB_EXPLORE -> ExploreScreen()
 
-                TAB_INBOX -> InboxScreen()
+                TAB_INBOX -> {
+                    if (showRequestDetail) {
+                        RequestDetailScreen(
+                            onBack = { showRequestDetail = false }
+                        )
+                    } else {
+                        InboxScreen(
+                            onNavigateToRequestDetail = { showRequestDetail = true }
+                        )
+                    }
+                }
 
                 TAB_ACCOUNT -> AccountScreen()
             }

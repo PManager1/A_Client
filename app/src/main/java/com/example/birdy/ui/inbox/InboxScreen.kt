@@ -49,7 +49,8 @@ import com.example.birdy.data.SupportTicket
 
 @Composable
 fun InboxScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onNavigateToRequestDetail: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
 
@@ -117,7 +118,8 @@ fun InboxScreen(
             0 -> NotificationsTabView(
                 modifier = Modifier
                     .weight(1f)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(rememberScrollState()),
+                onMessageClick = onNavigateToRequestDetail
             )
             1 -> ScheduledRequestsTabView(
                 modifier = Modifier
@@ -137,7 +139,8 @@ fun InboxScreen(
 
 @Composable
 fun NotificationsTabView(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onMessageClick: () -> Unit = {}
 ) {
     val messages = remember { InboxData.notifications }
 
@@ -147,7 +150,7 @@ fun NotificationsTabView(
             .background(Color.White)
     ) {
         messages.forEachIndexed { index, message ->
-            MessageRowView(message = message)
+            MessageRowView(message = message, onClick = onMessageClick)
             if (index < messages.size - 1) {
                 HorizontalDivider(
                     color = Color(0xFFE0E0E0),
@@ -160,12 +163,12 @@ fun NotificationsTabView(
 }
 
 @Composable
-fun MessageRowView(message: InboxMessage) {
+fun MessageRowView(message: InboxMessage, onClick: () -> Unit = {}) {
     Row(
         verticalAlignment = Alignment.Top,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* TODO: navigate to detail */ }
+            .clickable { onClick() }
             .padding(16.dp)
     ) {
         Column(
