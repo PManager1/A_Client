@@ -21,7 +21,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.birdy.data.AuthManager
 import com.example.birdy.ui.account.AccountScreen
 import com.example.birdy.ui.components.BirdyBottomNavBar
+import com.example.birdy.data.ExploreCategory
 import com.example.birdy.ui.explore.ExploreScreen
+import com.example.birdy.ui.explore.NewFoodPlacesScreen
+import com.example.birdy.ui.explore.SearchFoodScreen
 import com.example.birdy.ui.fooddelivery.FoodDeliveryScreen
 import com.example.birdy.ui.inbox.InboxScreen
 import com.example.birdy.ui.inbox.RequestDetailScreen
@@ -55,6 +58,9 @@ class MainActivity : ComponentActivity() {
 fun BirdyApp() {
     var selectedTab by remember { mutableIntStateOf(TAB_HOME) }
     var showRequestDetail by remember { mutableStateOf(false) }
+    var showSearchFood by remember { mutableStateOf(false) }
+    var showFoodPlaces by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf<ExploreCategory?>(null) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -65,6 +71,9 @@ fun BirdyApp() {
                 onTabSelected = { index ->
                     selectedTab = index
                     showRequestDetail = false
+                    showSearchFood = false
+                    showFoodPlaces = false
+                    selectedCategory = null
                 }
             )
         }
@@ -90,7 +99,40 @@ fun BirdyApp() {
                     }
                 )
 
-                TAB_EXPLORE -> ExploreScreen()
+                TAB_EXPLORE -> {
+                    when {
+                        showSearchFood -> {
+                            SearchFoodScreen(
+                                onBack = { showSearchFood = false },
+                                onRestaurantClick = {
+                                    // TODO: Navigate to Store page
+                                }
+                            )
+                        }
+                        showFoodPlaces && selectedCategory != null -> {
+                            NewFoodPlacesScreen(
+                                category = selectedCategory!!.title,
+                                onBack = {
+                                    showFoodPlaces = false
+                                    selectedCategory = null
+                                },
+                                onSearchClick = { showSearchFood = true },
+                                onRestaurantClick = {
+                                    // TODO: Navigate to Store page
+                                }
+                            )
+                        }
+                        else -> {
+                            ExploreScreen(
+                                onNavigateToSearch = { showSearchFood = true },
+                                onCategoryClick = { category ->
+                                    selectedCategory = category
+                                    showFoodPlaces = true
+                                }
+                            )
+                        }
+                    }
+                }
 
                 TAB_INBOX -> {
                     if (showRequestDetail) {

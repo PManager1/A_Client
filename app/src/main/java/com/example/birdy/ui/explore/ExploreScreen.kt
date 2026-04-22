@@ -92,7 +92,7 @@ fun ExploreScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
-                .padding(top = 4.dp, bottom = 100.dp)
+                .padding(top = 4.dp)
         ) {
             // "Go to Food Places" button
             item {
