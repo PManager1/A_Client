@@ -120,7 +120,7 @@ private var isFetchingRoute: Boolean = false
 // Draws a road-following route line between driver and user via Google Maps Directions API.
 
 @Composable
-fun ShowDriverPositionScreen(
+fun DriverTrackingScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current

@@ -30,7 +30,7 @@ import com.example.birdy.ui.explore.SearchFoodScreen
 import com.example.birdy.ui.explore.StoreScreen
 import com.example.birdy.ui.explore.CartSheet
 import com.example.birdy.ui.explore.CheckoutScreen
-import com.example.birdy.ui.explore.ShowDriverPositionScreen
+import com.example.birdy.ui.explore.DriverTrackingScreen
 import com.example.birdy.ui.fooddelivery.FoodDeliveryScreen
 import com.example.birdy.ui.inbox.InboxScreen
 import com.example.birdy.ui.inbox.RequestDetailScreen
@@ -192,9 +192,9 @@ fun BirdyApp() {
             }
         }
 
-        // Full-screen driver tracking overlay — matches iOS .fullScreenCover for ShowDriverPosition
+        // Full-screen driver tracking overlay — matches iOS .fullScreenCover for DriverTracking
         if (CartManager.showDriverTracking) {
-            ShowDriverPositionScreen(
+            DriverTrackingScreen(
                 onBack = {
                     CartManager.showDriverTracking = false
                 }

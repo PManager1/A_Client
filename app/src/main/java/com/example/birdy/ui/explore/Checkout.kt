@@ -21,7 +21,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -33,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -48,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.birdy.data.CartManager
+import kotlinx.coroutines.delay
 
 // MARK: - Mock Data Models (matches iOS Checkout.swift)
 
@@ -103,25 +105,21 @@ fun CheckoutScreen(
     var selectedPayment by remember { mutableStateOf(paymentMethods.first()) }
     var tipAmount by remember { mutableStateOf(5.0) }
     var leaveAtDoor by remember { mutableStateOf(true) }
-    var showOrderPlaced by remember { mutableStateOf(false) }
+    var showOrderSuccess by remember { mutableStateOf(false) }
 
     val totalWithTip = CartManager.total + tipAmount
 
-    // Order placed confirmation dialog
-    if (showOrderPlaced) {
-        OrderPlacedDialog(
-            onDismiss = {
-                CartManager.clear()
-                showOrderPlaced = false
-                onBack()
-            },
-            onTrackOrder = {
-                CartManager.showDriverTracking = true
-                CartManager.clear()
-                showOrderPlaced = false
-                onTrackOrder()
-            }
-        )
+    // Auto-transition to driver tracking after 1 second (matches iOS handlePlaceOrder)
+    LaunchedEffect(showOrderSuccess) {
+        if (showOrderSuccess) {
+            delay(1000)
+            // 1. Trigger driver tracking (MainActivity observes CartManager.showDriverTracking)
+            CartManager.showDriverTracking = true
+            // 2. Clear the cart (but NOT showDriverTracking!)
+            CartManager.clear()
+            // 3. Navigate back from Checkout
+            onTrackOrder()
+        }
     }
 
     Scaffold(
@@ -223,15 +221,20 @@ fun CheckoutScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(
-                            Color(0xFFCC5500), // burntOrange
+                            if (showOrderSuccess) Color(0xFF4CAF50) else Color(0xFFCC5500),
                             RoundedCornerShape(16.dp)
                         )
                         .clickable {
-                            showOrderPlaced = true
+                            showOrderSuccess = true
                         }
                         .padding(vertical = 16.dp),
                     textAlign = TextAlign.Center
                 )
+            }
+
+            // Success overlay — matches iOS OrderSuccessOverlay (shown for 1 second before driver tracking)
+            if (showOrderSuccess) {
+                OrderSuccessOverlay()
             }
         }
     }
@@ -608,76 +611,55 @@ private fun CheckoutPriceRow(
     }
 }
 
-// MARK: - Order Placed Dialog (matches iOS OrderPlacedView)
+// MARK: - Order Success Overlay (matches iOS OrderSuccessOverlay)
+// Shown inline in Checkout for 1 second before auto-transitioning to driver tracking
 
 @Composable
-private fun OrderPlacedDialog(
-    onDismiss: () -> Unit,
-    onTrackOrder: () -> Unit = {}
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = Color.White,
-        confirmButton = {},
-        title = null,
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = Color(0xFFCC5500),
-                    modifier = Modifier.size(100.dp)
+private fun OrderSuccessOverlay() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.4f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+            modifier = Modifier
+                .background(
+                    Color.Black.copy(alpha = 0.7f),
+                    RoundedCornerShape(24.dp)
                 )
+                .padding(40.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = Color(0xFF4CAF50), // Green checkmark — matches iOS
+                modifier = Modifier.size(80.dp)
+            )
 
-                Text(
-                    text = "Order Placed!",
-                    fontSize = 34.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
+            Text(
+                text = "Order Placed!",
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
 
-                Text(
-                    text = "Your delicious food is on the way",
-                    fontSize = 20.sp,
-                    color = Color.Gray,
-                    textAlign = TextAlign.Center
-                )
+            Text(
+                text = "Finding your driver...",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White.copy(alpha = 0.8f)
+            )
 
-                Text(
-                    text = "Estimated arrival: 32–42 min",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFCC5500),
-                    modifier = Modifier
-                        .background(
-                            Color(0xFFCC5500).copy(alpha = 0.1f),
-                            RoundedCornerShape(12.dp)
-                        )
-                        .padding(horizontal = 16.dp, vertical = 10.dp)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Track Order button
-                Text(
-                    text = "Track Order",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    modifier = Modifier
-                        .width(300.dp)
-                        .background(Color(0xFFCC5500), RoundedCornerShape(16.dp))
-                        .clickable { onTrackOrder() }
-                        .padding(vertical = 14.dp),
-                    textAlign = TextAlign.Center
-                )
-            }
+            androidx.compose.material3.CircularProgressIndicator(
+                color = Color.White,
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .size(32.dp),
+                strokeWidth = 3.dp
+            )
         }
-    )
+    }
 }
