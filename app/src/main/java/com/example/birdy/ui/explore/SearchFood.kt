@@ -117,7 +117,7 @@ private val suggestedSearches = listOf("Chicken nuggets", "Candy", "Blueberry mu
 @Composable
 fun SearchFoodScreen(
     onBack: () -> Unit = {},
-    onRestaurantClick: () -> Unit = {}
+    onRestaurantClick: (String) -> Unit = {}
 ) {
     var searchText by remember { mutableStateOf("") }
     val results = remember(searchText) {
@@ -192,7 +192,7 @@ fun SearchFoodScreen(
         } else {
             ResultsList(
                 results = results,
-                onResultClick = { onRestaurantClick() }
+                onResultClick = { restaurant -> onRestaurantClick(restaurant.id.toString()) }
             )
         }
     }
@@ -288,7 +288,7 @@ private fun SearchRow(
 @Composable
 private fun ResultsList(
     results: List<SearchRestaurant>,
-    onResultClick: () -> Unit = {}
+    onResultClick: (SearchRestaurant) -> Unit = {}
 ) {
     if (results.isEmpty()) {
         Column(
@@ -316,7 +316,7 @@ private fun ResultsList(
             items(results) { item ->
                 SearchResultRow(
                     restaurant = item,
-                    onClick = onResultClick
+                    onClick = { onResultClick(item) }
                 )
                 HorizontalDivider(modifier = Modifier.padding(start = 85.dp))
             }

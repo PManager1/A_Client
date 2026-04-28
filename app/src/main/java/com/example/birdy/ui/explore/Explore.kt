@@ -94,31 +94,6 @@ fun ExploreScreen(
                 .padding(horizontal = 16.dp)
                 .padding(top = 4.dp)
         ) {
-            // "Go to Food Places" button
-            item {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFF1565C0), RoundedCornerShape(12.dp))
-                        .clickable { onNavigateToFoodPlaces() }
-                        .padding(16.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Fastfood,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
-                    Text(
-                        text = "Go to Food Places",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-
             // Category rows (2 cards per row)
             items(ExploreData.categories) { row ->
                 Row(

@@ -70,7 +70,8 @@ data class PaymentMethod(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CheckoutScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onTrackOrder: () -> Unit = {}
 ) {
     // Mock data — matches iOS addresses/paymentMethods
     val addresses = remember {
@@ -113,6 +114,12 @@ fun CheckoutScreen(
                 CartManager.clear()
                 showOrderPlaced = false
                 onBack()
+            },
+            onTrackOrder = {
+                CartManager.showDriverTracking = true
+                CartManager.clear()
+                showOrderPlaced = false
+                onTrackOrder()
             }
         )
     }
@@ -605,7 +612,8 @@ private fun CheckoutPriceRow(
 
 @Composable
 private fun OrderPlacedDialog(
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onTrackOrder: () -> Unit = {}
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -665,7 +673,7 @@ private fun OrderPlacedDialog(
                     modifier = Modifier
                         .width(300.dp)
                         .background(Color(0xFFCC5500), RoundedCornerShape(16.dp))
-                        .clickable { onDismiss() }
+                        .clickable { onTrackOrder() }
                         .padding(vertical = 14.dp),
                     textAlign = TextAlign.Center
                 )

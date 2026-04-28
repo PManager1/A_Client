@@ -3,6 +3,7 @@ package com.example.birdy.data
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.example.birdy.ui.explore.StoreMenuItem
 
 // Matches iOS CartManager.shared singleton
 
@@ -14,7 +15,8 @@ data class CartItem(
     var quantity: Int = 1,
     val imageURL: String = "",
     val specialInstructions: String = "",
-    val selectedOptions: List<String> = emptyList()
+    val selectedOptions: List<String> = emptyList(),
+    val menuItem: StoreMenuItem? = null  // Full menu item for re-opening customization (matches iOS)
 )
 
 object CartManager {
@@ -22,6 +24,9 @@ object CartManager {
         private set
 
     var promoCode by mutableStateOf("")
+
+    // Bridge to present driver tracking map — matches iOS CartManager.shared.showDriverTracking
+    var showDriverTracking by mutableStateOf(false)
 
     val subtotal: Double
         get() = items.sumOf { it.price * it.quantity }

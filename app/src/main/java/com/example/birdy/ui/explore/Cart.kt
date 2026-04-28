@@ -35,6 +35,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,7 +63,7 @@ fun CartSheet(
     onCheckout: () -> Unit = {}
 ) {
     val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = false
+        skipPartiallyExpanded = true
     )
 
     ModalBottomSheet(
@@ -192,6 +196,9 @@ private fun EmptyCartView(onDismiss: () -> Unit) {
 
 @Composable
 private fun CartListView(onCheckout: () -> Unit = {}) {
+    var editingCartItem by remember { mutableStateOf<CartItem?>(null) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -205,7 +212,14 @@ private fun CartListView(onCheckout: () -> Unit = {}) {
         ) {
             // Cart items
             CartManager.items.forEach { item ->
-                CartItemRow(item = item)
+                CartItemRow(
+                    item = item,
+                    onItemClick = { clickedItem ->
+                        if (clickedItem.menuItem != null) {
+                            editingCartItem = clickedItem
+                        }
+                    }
+                )
             }
 
             // Promo Code section
@@ -318,18 +332,41 @@ private fun CartListView(onCheckout: () -> Unit = {}) {
             Spacer(modifier = Modifier.height(100.dp))
         }
     }
+
+    // Item Detail Sheet for editing cart items (matches iOS tap-to-edit behavior)
+    editingCartItem?.let { cartItem ->
+        cartItem.menuItem?.let { menuItem ->
+            ItemDetailSheet(
+                item = menuItem,
+                restaurantName = cartItem.restaurantName,
+                onDismiss = { editingCartItem = null },
+                onAddToCart = { updatedItem ->
+                    // Remove old item and add updated one
+                    CartManager.removeItem(cartItem)
+                    CartManager.addItem(updatedItem)
+                    editingCartItem = null
+                },
+                editingCartItem = cartItem
+            )
+        }
+    }
+    } // end Box
 }
 
 // MARK: - Cart Item Row (matches iOS CartItemRow)
 
 @Composable
-fun CartItemRow(item: CartItem) {
+fun CartItemRow(
+    item: CartItem,
+    onItemClick: (CartItem) -> Unit = {}
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .background(Color.White, RoundedCornerShape(16.dp))
-            .border(1.dp, Color.Gray.copy(alpha = 0.15f), RoundedCornerShape(16.dp)),
+            .border(1.dp, Color.Gray.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
+            .clickable { onItemClick(item) },
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Top row: Image + Info + X button

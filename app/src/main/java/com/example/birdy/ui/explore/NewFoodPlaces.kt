@@ -89,7 +89,7 @@ fun NewFoodPlacesScreen(
     category: String,
     onBack: () -> Unit = {},
     onSearchClick: () -> Unit = {},
-    onRestaurantClick: () -> Unit = {}
+    onRestaurantClick: (String) -> Unit = {}
 ) {
     var foodItems by remember { mutableStateOf<List<NewFoodRestaurant>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -215,7 +215,7 @@ fun NewFoodPlacesScreen(
 @Composable
 fun NewFoodCard(
     restaurant: NewFoodRestaurant,
-    onClick: () -> Unit = {}
+    onClick: (String) -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -223,7 +223,7 @@ fun NewFoodCard(
             .padding(horizontal = 16.dp)
             .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
-            .clickable { onClick() }
+            .clickable { onClick(restaurant.id) }
     ) {
         // 1. Image Section
         Box(
@@ -514,27 +514,30 @@ private suspend fun fetchRestaurants(
                     (0 until imagesArray.length()).mapNotNull { imagesArray.optString(it).takeIf { it.isNotEmpty() } }
                 } else emptyList()
 
-                val promoText = r.optString("promoText", "").takeIf { it.isNotEmpty() }
+                val restaurantPromoText = r.optString("promoText", "").takeIf { it.isNotEmpty() }
                 val logoURL = r.optString("logoURL", "").takeIf { it.isNotEmpty() }
 
-                // Parse items and extract image URLs (may be JSON-encoded arrays)
-                val itemsArray = r.optJSONArray("items")
+                // Parse foodItems (API returns "foodItems" not "items") and extract image URLs
+                val itemsArray = r.optJSONArray("foodItems")
                 val itemName = itemsArray?.optJSONObject(0)?.optString("name")
                 val itemPrice = itemsArray?.optJSONObject(0)?.optDouble("basePrice")
+                val itemPromoText = itemsArray?.optJSONObject(0)?.optString("promoText", "")?.takeIf { it.isNotEmpty() }
 
-                // Fallback: if restaurant images empty, use item imageUrls
-                val carouselImages = if (images.isNotEmpty()) {
-                    images
-                } else {
-                    val fallbackImages = mutableListOf<String>()
-                    itemsArray?.let { arr ->
-                        for (j in 0 until arr.length()) {
-                            val rawUrl = arr.optJSONObject(j)?.optString("imageUrl", "") ?: ""
-                            fallbackImages.addAll(parseImageUrls(rawUrl))
-                        }
+                // Match iClient: use food item images for carousel (not restaurant-level branding images)
+                // iClient: let carouselImages = restaurant.foodItems.flatMap { parseImageUrls($0.imageUrl) }
+                val foodItemImages = mutableListOf<String>()
+                itemsArray?.let { arr ->
+                    for (j in 0 until arr.length()) {
+                        val rawUrl = arr.optJSONObject(j)?.optString("imageUrl", "") ?: ""
+                        foodItemImages.addAll(parseImageUrls(rawUrl))
                     }
-                    fallbackImages.toList()
                 }
+                // Filter out logoURL from food item images just in case
+                val carouselImages = foodItemImages.filter { img -> logoURL == null || img != logoURL }
+                    .ifEmpty {
+                        // Fallback: use restaurant-level images only if no food item images at all
+                        images.filter { img -> logoURL == null || img != logoURL }
+                    }
 
                 items.add(
                     NewFoodRestaurant(
@@ -547,7 +550,7 @@ private suspend fun fetchRestaurants(
                         distance = r.optDouble("distance", 0.0),
                         deliveryTime = r.optInt("deliveryTime", 30),
                         deliveryFee = r.optDouble("deliveryFee", 0.0),
-                        promoText = promoText,
+                        promoText = itemPromoText ?: restaurantPromoText,
                         isSponsored = r.optBoolean("isSponsored", false),
                         itemName = itemName,
                         itemPrice = itemPrice

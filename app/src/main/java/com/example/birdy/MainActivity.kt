@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.birdy.data.AuthManager
+import com.example.birdy.data.CartManager
 import com.example.birdy.ui.account.AccountScreen
 import com.example.birdy.ui.components.BirdyBottomNavBar
 import com.example.birdy.data.ExploreCategory
@@ -29,6 +30,7 @@ import com.example.birdy.ui.explore.SearchFoodScreen
 import com.example.birdy.ui.explore.StoreScreen
 import com.example.birdy.ui.explore.CartSheet
 import com.example.birdy.ui.explore.CheckoutScreen
+import com.example.birdy.ui.explore.ShowDriverPositionScreen
 import com.example.birdy.ui.fooddelivery.FoodDeliveryScreen
 import com.example.birdy.ui.inbox.InboxScreen
 import com.example.birdy.ui.inbox.RequestDetailScreen
@@ -66,6 +68,7 @@ fun BirdyApp() {
     var showSearchFood by remember { mutableStateOf(false) }
     var showFoodPlaces by remember { mutableStateOf(false) }
     var showStore by remember { mutableStateOf(false) }
+    var selectedRestaurantId by remember { mutableStateOf("") }
     var showCart by remember { mutableStateOf(false) }
     var showCheckout by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf<ExploreCategory?>(null) }
@@ -114,14 +117,19 @@ fun BirdyApp() {
                     when {
                         showCheckout -> {
                             CheckoutScreen(
-                                onBack = { showCheckout = false }
+                                onBack = { showCheckout = false },
+                                onTrackOrder = {
+                                    showCheckout = false
+                                    // CartManager.showDriverTracking is already set to true
+                                }
                             )
                         }
                         showStore -> {
                             StoreScreen(
                                 onBack = { showStore = false },
                                 onViewCart = { showCart = true },
-                                jsonInputStream = context.assets.open("storejson.json")
+                                restaurantId = selectedRestaurantId,
+                                jsonInputStream = if (selectedRestaurantId.isEmpty()) context.assets.open("storejson.json") else null
                             )
                             if (showCart) {
                                 CartSheet(
@@ -136,7 +144,10 @@ fun BirdyApp() {
                         showSearchFood -> {
                             SearchFoodScreen(
                                 onBack = { showSearchFood = false },
-                                onRestaurantClick = { showStore = true }
+                                onRestaurantClick = { restaurantId ->
+                                    selectedRestaurantId = restaurantId
+                                    showStore = true
+                                }
                             )
                         }
                         showFoodPlaces && selectedCategory != null -> {
@@ -147,7 +158,10 @@ fun BirdyApp() {
                                     selectedCategory = null
                                 },
                                 onSearchClick = { showSearchFood = true },
-                                onRestaurantClick = { showStore = true }
+                                onRestaurantClick = { restaurantId ->
+                                    selectedRestaurantId = restaurantId
+                                    showStore = true
+                                }
                             )
                         }
                         else -> {
@@ -176,6 +190,15 @@ fun BirdyApp() {
 
                 TAB_ACCOUNT -> AccountScreen()
             }
+        }
+
+        // Full-screen driver tracking overlay — matches iOS .fullScreenCover for ShowDriverPosition
+        if (CartManager.showDriverTracking) {
+            ShowDriverPositionScreen(
+                onBack = {
+                    CartManager.showDriverTracking = false
+                }
+            )
         }
     }
 }
