@@ -21,13 +21,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.birdy.data.AuthManager
 import com.example.birdy.data.CartManager
+import com.example.birdy.data.Config
+import com.stripe.android.PaymentConfiguration
 import com.example.birdy.ui.account.AccountScreen
 import com.example.birdy.ui.components.BirdyBottomNavBar
 import com.example.birdy.data.ExploreCategory
 import com.example.birdy.ui.explore.ExploreScreen
 import com.example.birdy.ui.explore.NewFoodPlacesScreen
 import com.example.birdy.ui.explore.SearchFoodScreen
-import com.example.birdy.ui.explore.StoreScreen
+import com.example.birdy.ui.store.StoreScreen
 import com.example.birdy.ui.explore.CartSheet
 import com.example.birdy.ui.explore.CheckoutScreen
 import com.example.birdy.ui.explore.DriverTrackingScreen
@@ -47,6 +49,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AuthManager.init(applicationContext)
+        // Initialize Stripe SDK — matches iOS AppDelegate stripeInit()
+        PaymentConfiguration.init(applicationContext, Config.STRIPE_PUBLISHABLE_KEY)
         enableEdgeToEdge()
         setContent {
             BirdyTheme {

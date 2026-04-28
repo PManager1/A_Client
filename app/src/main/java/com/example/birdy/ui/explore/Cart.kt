@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.birdy.data.CartItem
 import com.example.birdy.data.CartManager
+import com.example.birdy.ui.store.ItemDetailSheet
 
 // MARK: - Cart Bottom Sheet (matches iOS sheet presentation)
 

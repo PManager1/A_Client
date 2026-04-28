@@ -84,7 +84,7 @@ fun AccountScreen(
     // Route to the correct sub-page
     when (currentPage) {
         AccountPage.Help -> HelpScreen(onBack = { currentPage = AccountPage.Main })
-        AccountPage.Wallet -> WalletScreen(onBack = { currentPage = AccountPage.Main })
+        AccountPage.Wallet -> Wallet(onBack = { currentPage = AccountPage.Main })
         AccountPage.Pass -> PassScreen(onBack = { currentPage = AccountPage.Main })
         AccountPage.ManageAccount -> ManageAccountScreen(
             onBack = { currentPage = AccountPage.Main },

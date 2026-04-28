@@ -3,7 +3,7 @@ package com.example.birdy.data
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.example.birdy.ui.explore.StoreMenuItem
+import com.example.birdy.ui.store.StoreMenuItem
 
 // Matches iOS CartManager.shared singleton
 
