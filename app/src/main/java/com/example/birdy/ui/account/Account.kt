@@ -186,12 +186,6 @@ fun AccountScreen(
                         modifier = Modifier.weight(1f)
                     )
                     ActionButton(
-                        title = "Wallet",
-                        icon = Icons.Default.Wallet,
-                        onClick = { currentPage = AccountPage.Wallet },
-                        modifier = Modifier.weight(1f)
-                    )
-                    ActionButton(
                         title = "PassView",
                         icon = Icons.Default.Shield,
                         onClick = { currentPage = AccountPage.Pass },
@@ -231,8 +225,13 @@ fun AccountScreen(
                     ListItemRow(
                         title = "Sign In or Register",
                         icon = Icons.Default.Person,
-                        showDivider = false,
                         onClick = { currentPage = AccountPage.ManageAccount }
+                    )
+                    ListItemRow(
+                        title = "Wallet",
+                        icon = Icons.Default.Wallet,
+                        showDivider = false,
+                        onClick = { currentPage = AccountPage.Wallet }
                     )
                 }
 
