@@ -2,6 +2,7 @@ package com.example.birdy.ui.account
 
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,14 +12,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CreditCard
@@ -34,6 +37,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -51,17 +56,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import com.example.birdy.data.AuthManager
 import com.example.birdy.data.Config
 import com.stripe.android.ApiResultCallback
 import com.stripe.android.PaymentConfiguration
 import com.stripe.android.Stripe
+import com.stripe.android.model.Address
 import com.stripe.android.model.PaymentMethod
 import com.stripe.android.model.PaymentMethodCreateParams
-import com.stripe.android.view.CardInputWidget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -97,6 +102,7 @@ fun Wallet(
     var showAddSheet by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var isDeletingCard by remember { mutableStateOf(false) }
+    var isEditing by remember { mutableStateOf(false) }
 
     // Fetch saved card on appear — matches iOS .task { await fetchSavedCard() }
     LaunchedEffect(Unit) {
@@ -111,7 +117,24 @@ fun Wallet(
             .background(Color.White)
             .verticalScroll(rememberScrollState())
     ) {
-        // MARK: - Header
+        // MARK: - Back Button
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 4.dp, top = 16.dp, end = 16.dp)
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.Black,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
+        // MARK: - Header (matches iOS headerSection)
         Text(
             text = "Payment Methods",
             fontSize = 34.sp,
@@ -120,13 +143,12 @@ fun Wallet(
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 40.dp)
         )
 
-        // Instructions
         Text(
             text = "Manage your payment methods for faster checkout and seamless transactions.",
             fontSize = 15.sp,
             fontWeight = FontWeight.Normal,
             color = Color.Gray,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp)
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp)
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -135,136 +157,123 @@ fun Wallet(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // MARK: - Payment Methods Card
-        Surface(
-            shape = RoundedCornerShape(10.dp),
-            color = SoftGrey,
+        // MARK: - Saved Payment Methods Section (matches iOS savedPaymentMethodsSection)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Saved Payment Methods",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Black
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            TextButton(
+                onClick = { isEditing = !isEditing }
+            ) {
+                Text(
+                    text = if (isEditing) "Done" else "Edit",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isEditing) Color.Red else BurntOrange
+                )
+            }
+        }
 
-                // Add Payment Method Button
-                Button(
-                    onClick = { showAddSheet = true },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent
-                    ),
-                    elevation = null
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Saved card content (matches iOS savedCardContent)
+        Surface(
+            shape = RoundedCornerShape(15.dp),
+            color = Color.White,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        ) {
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Add",
-                            tint = BurntOrange,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp
+                    )
+                }
+            } else if (savedCard != null) {
+                val card = savedCard!!
+                val brand = card.brand ?: ""
+                val last4 = card.last4 ?: "????"
+
+                // Card Row (matches iOS cardRow)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    // Card icon (matches iOS creditcard.fill — 25pt frame)
+                    Icon(
+                        imageVector = Icons.Default.CreditCard,
+                        contentDescription = brand,
+                        modifier = Modifier.size(25.dp),
+                        tint = Color.Gray
+                    )
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // Card info column
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = "Add Payment Method",
-                            fontSize = 17.sp,
+                            text = "${brandDisplayName(brand)} •••• $last4",
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color.Black
+                            color = BurntOrange
                         )
-                        Spacer(modifier = Modifier.weight(1f))
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = "Navigate",
-                            tint = Color.Gray,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        // Expiry
+                        if (card.expMonth != null && card.expYear != null) {
+                            val shortYear = card.expYear!! % 100
+                            Text(
+                                text = "Expires ${String.format(Locale.US, "%02d", card.expMonth!!)}/${String.format(Locale.US, "%02d", shortYear)}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = Color.Gray
+                            )
+                        }
                     }
-                }
 
-                // Divider between add button and saved card
-                if (savedCard != null) {
-                    HorizontalDivider(color = CardGrey, modifier = Modifier.padding(vertical = 8.dp))
-                }
+                    Spacer(modifier = Modifier.weight(1f))
 
-                // Loading State
-                if (isLoading) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp
-                        )
-                    }
-                } else if (savedCard != null) {
-                    val card = savedCard!!
-                    val brand = card.brand ?: ""
-                    val last4 = card.last4 ?: "????"
-
-                    // --- Card Display ---
+                    // "Default" Badge (matches iOS checkmark.circle.fill + "Default")
                     Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .background(BurntOrange.copy(alpha = 0.1f), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
-                        // Brand Icon
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(brandColor(brand).copy(alpha = 0.12f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CreditCard,
-                                contentDescription = brand,
-                                tint = brandColor(brand),
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = BurntOrange
+                        )
+                        Text(
+                            text = "Default",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = BurntOrange
+                        )
+                    }
 
-                        Spacer(modifier = Modifier.width(14.dp))
-
-                        // Card Info
-                        Column {
-                            Text(
-                                text = "${brandDisplayName(brand)} •••• $last4",
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.Black
-                            )
-                            // Expiry
-                            if (card.expMonth != null && card.expYear != null) {
-                                val shortYear = card.expYear!! % 100
-                                Text(
-                                    text = "Expires ${String.format(Locale.US, "%02d", card.expMonth!!)}/${String.format(Locale.US, "%02d", shortYear)}",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Normal,
-                                    color = Color.Gray
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.weight(1f))
-
-                        // "Default" Badge
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = BurntOrange.copy(alpha = 0.1f)
-                        ) {
-                            Text(
-                                text = "Default",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = BurntOrange,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                            )
-                        }
-
+                    // Delete button — only shows when editing (matches iOS isEditing check)
+                    if (isEditing) {
                         Spacer(modifier = Modifier.width(8.dp))
-
-                        // Delete Button (matches iOS trash button)
                         IconButton(
                             onClick = { showDeleteConfirmation = true },
                             enabled = !isDeletingCard,
@@ -289,40 +298,41 @@ fun Wallet(
                             }
                         }
                     }
+                }
 
-                    // --- "Expiring Soon" Warning ---
-                    if (isExpiringSoon(card)) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFFFF9500).copy(alpha = 0.08f)
+                // Expiring Soon Warning (matches iOS isExpiringSoon)
+                if (isExpiringSoon(card)) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFFF9500).copy(alpha = 0.08f),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier.padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Warning,
-                                    contentDescription = "Warning",
-                                    tint = Color(0xFFFF9500),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Card expiring soon — update to avoid failed orders.",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFFFF9500)
-                                )
-                            }
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = "Warning",
+                                tint = Color(0xFFFF9500),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Card expiring soon — update to avoid failed orders.",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFFFF9500)
+                            )
                         }
                     }
                 }
             }
         }
 
-        // MARK: - Security Note
         Spacer(modifier = Modifier.height(12.dp))
+
+        // MARK: - Security Note (matches iOS securityNote)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 16.dp)
@@ -341,6 +351,117 @@ fun Wallet(
                 color = Color.Gray
             )
         }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // MARK: - Add Payment Methods Section (matches iOS accountLinksSection)
+        Text(
+            text = "Add payment Methods",
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.Black,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Surface(
+            shape = RoundedCornerShape(15.dp),
+            color = Color.White,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        ) {
+            Column {
+                // Credit / Debit Card Row (matches iOS first button — entire row clickable)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showAddSheet = true }
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CreditCard,
+                        contentDescription = null,
+                        modifier = Modifier.size(25.dp),
+                        tint = Color.Gray
+                    )
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "Credit / Debit Card",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = BurntOrange
+                        )
+                        Text(
+                            text = "Visa, Mastercard, Amex, Discover",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = Color.Gray
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Add Card",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                HorizontalDivider(color = CardGrey, modifier = Modifier.padding(start = 50.dp))
+
+                // PayPal Row (matches iOS PayPal button — entire row clickable)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showAddSheet = true }
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(25.dp),
+                        tint = Color.Gray
+                    )
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "PayPal",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = BurntOrange
+                        )
+                        Text(
+                            text = "Pay with your PayPal account",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = Color.Gray
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "PayPal",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(60.dp))
     }
 
     // MARK: - Delete Confirmation Dialog (matches iOS .alert("Remove Card?"))
@@ -403,7 +524,7 @@ fun Wallet(
     }
 }
 
-// MARK: - Add Payment Method Sheet (matches iOS AddPaymentMethodSheet)
+// MARK: - Add Payment Method Sheet (matches iOS AddPaymentMethodSheet — custom card fields)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddPaymentMethodSheet(
@@ -415,7 +536,33 @@ fun AddPaymentMethodSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var cardInputWidget by remember { mutableStateOf<CardInputWidget?>(null) }
+
+    // Custom card fields (matches iOS individual TextFields)
+    var cardNumber by remember { mutableStateOf("") }
+    var expDate by remember { mutableStateOf("") }
+    var cvc by remember { mutableStateOf("") }
+    var zipCode by remember { mutableStateOf("") }
+
+    // Form validation (matches iOS isFormValid)
+    val isFormValid = remember(cardNumber, expDate, cvc, zipCode) {
+        val cleanNumber = cardNumber.replace(" ", "")
+        cleanNumber.length >= 15 &&
+        expDate.length == 5 && // MM/YY
+        cvc.length >= 3 &&
+        zipCode.length >= 5
+    }
+
+    // Card brand detection from number prefix (matches iOS detectedBrand)
+    val detectedBrand = remember(cardNumber) {
+        val clean = cardNumber.replace(" ", "")
+        when {
+            clean.startsWith("4") -> "Visa"
+            clean.startsWith("5") || clean.startsWith("2") -> "Mastercard"
+            clean.startsWith("3") -> "Amex"
+            clean.startsWith("6") -> "Discover"
+            else -> ""
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -426,15 +573,27 @@ fun AddPaymentMethodSheet(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 24.dp)
+                .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            // Close button row
+            // Drag Handle (matches iOS RoundedRectangle drag handle)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(top = 10.dp, bottom = 8.dp)
+                    .width(40.dp)
+                    .height(5.dp)
+                    .background(Color.Gray.copy(alpha = 0.3f), RoundedCornerShape(3.dp))
+            )
+
+            // Title + Close Button (matches iOS HStack with title + xmark button)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp)
             ) {
                 Text(
-                    text = "Add Payment Method",
+                    text = "Saved Payment Methods",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black,
@@ -442,13 +601,15 @@ fun AddPaymentMethodSheet(
                 )
                 IconButton(
                     onClick = { scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() } },
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier
+                        .size(30.dp)
+                        .background(SoftGrey, RoundedCornerShape(50))
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
                         tint = Color.Gray,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }
@@ -457,33 +618,151 @@ fun AddPaymentMethodSheet(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Card Form Fields (matches iOS VStack with 4 rows)
             Text(
                 text = "Enter your card details",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.Gray
+                color = Color.Black
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Stripe's secure multi-line card input — shows all fields at once:
-            // Card Number, Expiry, CVC, and Postal/ZIP code (postalCodeEnabled = true)
-            // Matches iOS STPPaymentCardTextField behavior
-            AndroidView(
-                factory = { ctx ->
-                    CardInputWidget(ctx).apply {
-                        postalCodeEnabled = true
-                        cardInputWidget = this
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-            )
+            // Row 1 — Card Number (matches iOS card number field)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "Card Number",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.Black
+                )
+                OutlinedTextField(
+                    value = cardNumber,
+                    onValueChange = { newValue ->
+                        val formatted = formatCardNumber(newValue)
+                        if (formatted != newValue) {
+                            cardNumber = formatted
+                        } else {
+                            cardNumber = newValue
+                        }
+                    },
+                    placeholder = { Text("1234 5678 9012 3456", color = Color.Gray) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.CreditCard,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = if (cardNumber.isEmpty()) Color.Gray else BurntOrange
+                        )
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedContainerColor = SoftGrey,
+                        focusedContainerColor = SoftGrey,
+                        unfocusedBorderColor = CardGrey,
+                        focusedBorderColor = BurntOrange
+                    )
+                )
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Security badge
+            // Row 2 — Expiration & CVC side by side (matches iOS HStack)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Expiration
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Expiration",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Black
+                    )
+                    OutlinedTextField(
+                        value = expDate,
+                        onValueChange = { newValue ->
+                            val formatted = formatExpDate(newValue)
+                            expDate = formatted
+                        },
+                        placeholder = { Text("MM/YY", color = Color.Gray) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedContainerColor = SoftGrey,
+                            focusedContainerColor = SoftGrey,
+                            unfocusedBorderColor = CardGrey,
+                            focusedBorderColor = BurntOrange
+                        )
+                    )
+                }
+
+                // CVC
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "CVC",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Black
+                    )
+                    OutlinedTextField(
+                        value = cvc,
+                        onValueChange = { newValue ->
+                            if (newValue.length <= 4) cvc = newValue.filter { it.isDigit() }
+                        },
+                        placeholder = { Text("123", color = Color.Gray) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedContainerColor = SoftGrey,
+                            focusedContainerColor = SoftGrey,
+                            unfocusedBorderColor = CardGrey,
+                            focusedBorderColor = BurntOrange
+                        )
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Row 3 — ZIP Code (matches iOS ZIP field)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "ZIP Code",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.Black
+                )
+                OutlinedTextField(
+                    value = zipCode,
+                    onValueChange = { newValue ->
+                        if (newValue.length <= 5) zipCode = newValue.filter { it.isDigit() }
+                    },
+                    placeholder = { Text("10001", color = Color.Gray) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedContainerColor = SoftGrey,
+                        focusedContainerColor = SoftGrey,
+                        unfocusedBorderColor = CardGrey,
+                        focusedBorderColor = BurntOrange
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Security badge (matches iOS lock.shield.fill row)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.Lock,
@@ -500,7 +779,7 @@ fun AddPaymentMethodSheet(
                 )
             }
 
-            // Error Message
+            // Error Message (matches iOS errorMessage conditional)
             if (errorMessage != null) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -520,24 +799,17 @@ fun AddPaymentMethodSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
-            // Add Card Button
+            // Add Card Button (matches iOS "Add Card" button)
             Button(
                 onClick = {
-                    val widget = cardInputWidget ?: return@Button
-                    val paymentMethodParams = widget.paymentMethodCreateParams
-                    if (paymentMethodParams == null) {
-                        errorMessage = "Please enter valid card details"
-                        return@Button
-                    }
-
                     isLoading = true
                     errorMessage = null
 
                     scope.launch {
                         try {
-                            val card = saveCardViaStripe(context, paymentMethodParams)
+                            val card = saveCardFromFields(context, cardNumber, expDate, cvc, zipCode)
                             if (card != null) {
                                 Log.d("Wallet", "✅ Card saved: ${card.brand} •••• ${card.last4}")
                                 onCardSaved(card)
@@ -552,13 +824,13 @@ fun AddPaymentMethodSheet(
                         }
                     }
                 },
-                enabled = !isLoading,
+                enabled = isFormValid && !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isLoading) Color.Gray else BurntOrange
+                    containerColor = if (isFormValid && !isLoading) BurntOrange else Color.Gray
                 )
             ) {
                 if (isLoading) {
@@ -577,8 +849,112 @@ fun AddPaymentMethodSheet(
                 }
             }
 
-            // Bottom safe area padding — matches iOS sheet safe area
             Spacer(modifier = Modifier.height(48.dp))
+        }
+    }
+}
+
+// MARK: - Formatting Helpers (matches iOS formatCardNumber, formatExpDate)
+
+private fun formatCardNumber(value: String): String {
+    val digits = value.filter { it.isDigit() }
+    val limited = digits.take(16)
+    val result = StringBuilder()
+    for ((i, char) in limited.withIndex()) {
+        if (i > 0 && i % 4 == 0) result.append(' ')
+        result.append(char)
+    }
+    return result.toString()
+}
+
+private fun formatExpDate(value: String): String {
+    val digits = value.filter { it.isDigit() }.take(4)
+    return if (digits.length > 2) {
+        digits.substring(0, 2) + "/" + digits.substring(2)
+    } else {
+        digits
+    }
+}
+
+// MARK: - API: Save Card from individual fields (matches iOS saveCard — builds PaymentMethodCreateParams manually)
+private suspend fun saveCardFromFields(
+    context: android.content.Context,
+    cardNumber: String,
+    expDate: String,
+    cvc: String,
+    zipCode: String
+): SavedCard? {
+    return withContext(Dispatchers.IO) {
+        try {
+            // Parse expiration (matches iOS expParts parsing)
+            val expParts = expDate.split("/")
+            if (expParts.size != 2) {
+                Log.e("Wallet", "❌ Invalid expiration date")
+                return@withContext null
+            }
+
+            val expMonth = expParts[0].toIntOrNull()
+            val expYearShort = expParts[1].toIntOrNull()
+            if (expMonth == null || expYearShort == null) {
+                Log.e("Wallet", "❌ Invalid expiration date format")
+                return@withContext null
+            }
+
+            // Convert 2-digit year to 4-digit (matches iOS fullYear logic)
+            val fullYear = if (expYearShort < 100) 2000 + expYearShort else expYearShort
+
+            val cleanNumber = cardNumber.replace(" ", "")
+
+            // Build PaymentMethodCreateParams from individual fields (matches iOS STPPaymentMethodCardParams)
+            val cardParams = PaymentMethodCreateParams.Card(
+                number = cleanNumber,
+                expiryMonth = expMonth,
+                expiryYear = fullYear,
+                cvc = cvc
+            )
+
+            val billingDetails = PaymentMethod.BillingDetails(
+                address = Address(
+                    postalCode = zipCode
+                )
+            )
+
+            val paymentMethodParams = PaymentMethodCreateParams.create(
+                card = cardParams,
+                billingDetails = billingDetails
+            )
+
+            // Create PaymentMethod via Stripe SDK
+            val stripe = Stripe(context, PaymentConfiguration.getInstance(context).publishableKey)
+
+            val paymentMethod: PaymentMethod? = kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+                stripe.createPaymentMethod(
+                    paymentMethodParams,
+                    callback = object : ApiResultCallback<PaymentMethod> {
+                        override fun onSuccess(result: PaymentMethod) {
+                            cont.resume(result) {}
+                        }
+
+                        override fun onError(e: Exception) {
+                            cont.cancel(e)
+                        }
+                    }
+                )
+            }
+
+            if (paymentMethod == null) {
+                Log.e("Wallet", "❌ Failed to create PaymentMethod")
+                return@withContext null
+            }
+
+            val pmId = paymentMethod.id ?: ""
+            Log.d("Wallet", "✅ Created PaymentMethod: $pmId")
+
+            // Send pm_ID to Go backend (matches iOS attachPaymentMethod)
+            attachPaymentMethod(context, pmId)
+        } catch (e: Exception) {
+            Log.e("Wallet", "❌ Error saving card: ${e.message}")
+            null
         }
     }
 }
@@ -662,44 +1038,6 @@ private suspend fun deleteCard(context: android.content.Context): Boolean {
             Log.e("Wallet", "❌ Error deleting card: ${e.message}")
             false
         }
-    }
-}
-
-// MARK: - API: Save Card via Stripe SDK → Backend (matches iOS saveCard + attachPaymentMethod)
-// Accepts PaymentMethodCreateParams directly from CardInputWidget — never touches raw card fields
-private suspend fun saveCardViaStripe(
-    context: android.content.Context,
-    paymentMethodParams: PaymentMethodCreateParams
-): SavedCard? {
-    return withContext(Dispatchers.IO) {
-        // 1. Create PaymentMethod via Stripe SDK (card data goes directly to Stripe — same as iOS)
-        val stripe = Stripe(context, PaymentConfiguration.getInstance(context).publishableKey)
-
-        val paymentMethod: PaymentMethod? = kotlinx.coroutines.suspendCancellableCoroutine { cont ->
-            stripe.createPaymentMethod(
-                paymentMethodParams,
-                callback = object : ApiResultCallback<PaymentMethod> {
-                    override fun onSuccess(result: PaymentMethod) {
-                        cont.resume(result) {}
-                    }
-
-                    override fun onError(e: Exception) {
-                        cont.cancel(e)
-                    }
-                }
-            )
-        }
-
-        if (paymentMethod == null) {
-            Log.e("Wallet", "❌ Failed to create PaymentMethod")
-            return@withContext null
-        }
-
-        val pmId = paymentMethod.id ?: ""
-        Log.d("Wallet", "✅ Created PaymentMethod: $pmId")
-
-        // 2. Send pm_ID to our Go backend (which attaches it to Stripe Customer + saves to MongoDB)
-        attachPaymentMethod(context, pmId)
     }
 }
 
