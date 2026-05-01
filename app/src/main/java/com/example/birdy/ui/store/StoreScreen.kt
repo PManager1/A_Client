@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
@@ -67,6 +68,7 @@ fun StoreScreen(
     var loadError by remember { mutableStateOf(false) }
     var selectedMode by remember { mutableStateOf("Delivery") }
     var selectedItem by remember { mutableStateOf<StoreMenuItem?>(null) }
+    var showRestaurantInfo by remember { mutableStateOf(false) }
 
     // Load data: API if restaurantId provided, else local JSON
     LaunchedEffect(restaurantId) {
@@ -240,7 +242,10 @@ fun StoreScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onViewRestaurantInfo?.invoke() },
+                            .clickable {
+                                onViewRestaurantInfo?.invoke()
+                                showRestaurantInfo = true
+                            },
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -254,10 +259,15 @@ fun StoreScreen(
                             overflow = TextOverflow.Ellipsis
                         )
                         Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "More",
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = "Restaurant Info",
                             tint = Color.Gray,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier
+                                .size(22.dp)
+                                .clickable {
+                                    onViewRestaurantInfo?.invoke()
+                                    showRestaurantInfo = true
+                                }
                         )
                     }
 
@@ -469,7 +479,15 @@ fun StoreScreen(
         }
     }
 
-    // 7. ITEM DETAIL SHEET (matches iOS ItemDetailSheet)
+    // 7. RESTAURANT INFO SHEET
+    if (showRestaurantInfo) {
+        RestaurantInfoSheet(
+            data = data,
+            onDismiss = { showRestaurantInfo = false }
+        )
+    }
+
+    // 8. ITEM DETAIL SHEET (matches iOS ItemDetailSheet)
     selectedItem?.let { item ->
         ItemDetailSheet(
             item = item,

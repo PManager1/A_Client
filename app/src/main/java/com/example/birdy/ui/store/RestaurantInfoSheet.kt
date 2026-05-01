@@ -25,7 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsBike
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
@@ -71,46 +71,51 @@ fun RestaurantInfoSheet(
             .background(Color.White)
             .verticalScroll(rememberScrollState())
     ) {
-        // 1. CLOSE BUTTON — top-left gray circle (matches iOS)
-        Row(
+        // 1. CLOSE BUTTON + RESTAURANT NAME — centered name with close button overlaid (matches iOS ZStack)
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 20.dp, top = 16.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 20.dp)
+                .padding(top = 26.dp, bottom = 12.dp)
         ) {
+            // Restaurant Name — perfectly centered on screen (matches iOS)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = data.brand_info.name,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.Black,
+                    maxLines = 1
+                )
+                Text(
+                    text = data.brand_info.cuisine,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = Color.Gray
+                )
+            }
+
+            // Back Button — pinned to left, aligned with restaurant name
             IconButton(
                 onClick = onDismiss,
                 modifier = Modifier
                     .size(32.dp)
                     .background(Color(0xFFF2F2F7), CircleShape)
+                    .align(Alignment.CenterStart)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Close",
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
                     tint = Color.Black,
                     modifier = Modifier.size(16.dp)
                 )
             }
-            Spacer(modifier = Modifier.weight(1f))
-        }
-
-        // 2. RESTAURANT NAME + CUISINE — clean header, no logo/banner (matches iOS)
-        Column(
-            modifier = Modifier.padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Text(
-                text = data.brand_info.name,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.Black
-            )
-            Text(
-                text = data.brand_info.cuisine,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Normal,
-                color = Color.Gray
-            )
         }
 
         Spacer(modifier = Modifier.height(12.dp))

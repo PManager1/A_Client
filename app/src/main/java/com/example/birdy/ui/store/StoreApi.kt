@@ -46,7 +46,9 @@ fun parseStoreJson(root: JSONObject): StoreData {
         delivery_fee = locObj.optDouble("delivery_fee", 2.99),
         delivery_time_est = locObj.optString("delivery_time", "20-35 min"),
         address = locObj.optString("address", ""),
-        operating_hours = operatingHours
+        operating_hours = operatingHours,
+        latitude = locObj.optDouble("latitude", 0.0),
+        longitude = locObj.optDouble("longitude", 0.0)
     )
 
     val menu = (0 until menuArr.length()).map { i ->

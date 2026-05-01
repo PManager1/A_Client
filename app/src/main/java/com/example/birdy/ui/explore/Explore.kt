@@ -43,6 +43,7 @@ import coil.compose.AsyncImage
 import com.example.birdy.R
 import com.example.birdy.data.ExploreCategory
 import com.example.birdy.data.ExploreData
+import com.example.birdy.ui.components.shimmer
 
 // Matches iOS ExploreView.swift
 // - Top bar with "Explore" title + search icon
@@ -114,6 +115,21 @@ fun ExploreScreen(
             }
         }
     }
+}
+
+// MARK: - Category Shimmer Card
+// Skeleton placeholder matching ExploreCategoryCard dimensions
+
+@Composable
+fun ExploreCategoryShimmer(
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(180.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .shimmer()
+    )
 }
 
 // MARK: - Category Card

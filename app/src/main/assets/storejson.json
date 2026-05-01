@@ -15,7 +15,9 @@
     "distance": "1.8 mi",
     "delivery_fee": 0.0,
     "delivery_time_est": "35 min",
-    "address": "415 Baltimore Ave, College Park, MD 20740"
+    "address": "415 Baltimore Ave, College Park, MD 20740",
+    "latitude": 38.9807,
+    "longitude": -76.9285
   },
   "menu": [
     {

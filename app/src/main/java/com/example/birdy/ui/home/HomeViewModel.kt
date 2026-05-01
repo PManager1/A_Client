@@ -62,8 +62,7 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 // TODO: Implement backend fetch with OkHttp/Retrofit
-                // For now, simulate a loading delay then show fallback categories
-                delay(1500) // Simulate network delay for shimmer demo
+                // For now, load fallback categories immediately (no artificial delay)
                 loadFallbackCategories()
             } catch (e: Exception) {
                 loadFallbackCategories()

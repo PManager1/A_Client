@@ -1,11 +1,5 @@
 package com.example.birdy.ui.explore
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,8 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -51,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.birdy.data.Config
+import com.example.birdy.ui.components.shimmer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -431,18 +424,6 @@ fun NewFoodCard(
 
 @Composable
 fun ShimmerCard() {
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val shimmerAlpha by transition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.7f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "shimmerAlpha"
-    )
-    val shimmerColor = Color(0xFFE0E0E0).copy(alpha = shimmerAlpha)
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -454,21 +435,22 @@ fun ShimmerCard() {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(220.dp)
-                .background(shimmerColor, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                .shimmer()
         )
 
         // Info section
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(modifier = Modifier.size(34.dp).background(shimmerColor, CircleShape))
+                Box(modifier = Modifier.size(34.dp).clip(CircleShape).shimmer())
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(modifier = Modifier.width(180.dp).height(16.dp).background(shimmerColor, RoundedCornerShape(4.dp)))
-                    Box(modifier = Modifier.width(140.dp).height(12.dp).background(shimmerColor, RoundedCornerShape(4.dp)))
+                    Box(modifier = Modifier.width(180.dp).height(16.dp).clip(RoundedCornerShape(4.dp)).shimmer())
+                    Box(modifier = Modifier.width(140.dp).height(12.dp).clip(RoundedCornerShape(4.dp)).shimmer())
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Box(modifier = Modifier.width(80.dp).height(24.dp).background(shimmerColor, RoundedCornerShape(6.dp)))
-                Box(modifier = Modifier.width(100.dp).height(14.dp).background(shimmerColor, RoundedCornerShape(4.dp)))
+                Box(modifier = Modifier.width(80.dp).height(24.dp).clip(RoundedCornerShape(6.dp)).shimmer())
+                Box(modifier = Modifier.width(100.dp).height(14.dp).clip(RoundedCornerShape(4.dp)).shimmer())
             }
         }
     }
