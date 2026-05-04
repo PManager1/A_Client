@@ -36,6 +36,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,13 +44,23 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.birdy.data.AuthManager
 import com.example.birdy.data.CartManager
+import com.example.birdy.data.Config
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 
 // MARK: - Mock Data Models (matches iOS Checkout.swift)
 
@@ -101,13 +112,121 @@ fun CheckoutScreen(
         )
     }
 
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     var selectedAddress by remember { mutableStateOf(addresses.first()) }
     var selectedPayment by remember { mutableStateOf(paymentMethods.first()) }
     var tipAmount by remember { mutableStateOf(5.0) }
     var leaveAtDoor by remember { mutableStateOf(true) }
     var showOrderSuccess by remember { mutableStateOf(false) }
+    var isPlacingOrder by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
 
     val totalWithTip = CartManager.total + tipAmount
+
+    // MARK: - Place Order — calls POST /orders (matches iOS handlePlaceOrder)
+    suspend fun handlePlaceOrder() {
+        val token = AuthManager.getToken(context)
+        if (token.isNullOrEmpty()) {
+            errorMessage = "Not authenticated — please log in again."
+            return
+        }
+
+        isPlacingOrder = true
+
+        try {
+            // Build the order payload — matches iOS Checkout.swift orderPayload exactly
+            val itemsArray = JSONArray().apply {
+                CartManager.items.forEach { item ->
+                    put(JSONObject().apply {
+                        put("itemId", item.menuItem?.id ?: java.util.UUID.randomUUID().toString())
+                        put("itemName", item.dishName)
+                        put("price", item.price)
+                        put("quantity", item.quantity)
+                        put("selectedOptions", JSONArray(item.selectedOptions))
+                        put("specialInstructions", item.specialInstructions)
+                        put("imageURL", item.imageURL)
+                    })
+                }
+            }
+
+            val restaurantName = CartManager.items.firstOrNull()?.restaurantName ?: "Unknown Restaurant"
+
+            val addressDict = JSONObject().apply {
+                put("street", selectedAddress.fullAddress)
+                put("cityStateZip", "")
+                put("isDefault", selectedAddress.id == "home")
+            }
+
+            val orderPayload = JSONObject().apply {
+                put("restaurantId", CartManager.restaurantId)
+                put("restaurantName", restaurantName)
+                put("items", itemsArray)
+                put("subtotal", CartManager.subtotal)
+                put("deliveryFee", CartManager.deliveryFee)
+                put("serviceFee", CartManager.serviceFee)
+                put("tax", CartManager.tax)
+                put("tip", tipAmount)
+                put("total", totalWithTip)
+                put("deliveryAddress", addressDict)
+                put("leaveAtDoor", leaveAtDoor)
+                put("paymentMethodId", selectedPayment.id)
+                put("paymentType", if (selectedPayment.id == "gpay") "google_pay" else "saved_card")
+            }
+
+            println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            println("📦 [Checkout] ORDER PAYLOAD:")
+            println("   Restaurant: $restaurantName (${CartManager.restaurantId})")
+            println("   Items: ${CartManager.items.size}")
+            println("   Total: $${String.format("%.2f", totalWithTip)}")
+            println("   Payment: ${selectedPayment.type}")
+            println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+            val result = withContext(Dispatchers.IO) {
+                val url = URL("${Config.API_BASE_URL}/orders")
+                val connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Authorization", "Bearer $token")
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.doOutput = true
+
+                connection.outputStream.use { os ->
+                    os.write(orderPayload.toString().toByteArray(Charsets.UTF_8))
+                }
+
+                val responseCode = connection.responseCode
+                println("📦 [Checkout] POST /orders → HTTP $responseCode")
+
+                if (responseCode == 201 || responseCode == 200) {
+                    val responseBody = connection.inputStream.bufferedReader().readText()
+                    val json = JSONObject(responseBody)
+                    val orderNumber = json.optString("orderNumber", "")
+                    println("✅ [Checkout] Order created! Order number: $orderNumber")
+                    "success"
+                } else {
+                    val errorBody = connection.errorStream?.bufferedReader()?.readText() ?: "Unknown error"
+                    println("❌ [Checkout] Order creation failed (HTTP $responseCode): $errorBody")
+                    "error: HTTP $responseCode"
+                }
+            }
+
+            if (result != "success") {
+                // Still proceed — don't block the user if order creation fails (matches iOS behavior)
+                println("⚠️ [Checkout] Order creation had issues but proceeding anyway")
+            }
+
+            // Show success animation
+            showOrderSuccess = true
+
+        } catch (e: Exception) {
+            println("❌ [Checkout] Failed to create order: ${e.message}")
+            // Still proceed — don't block the user (matches iOS behavior)
+            showOrderSuccess = true
+        } finally {
+            isPlacingOrder = false
+        }
+    }
 
     // Auto-transition to driver tracking after 1 second (matches iOS handlePlaceOrder)
     LaunchedEffect(showOrderSuccess) {
@@ -213,19 +332,37 @@ fun CheckoutScreen(
                     .background(Color.White)
                     .padding(horizontal = 16.dp, vertical = 16.dp)
             ) {
+                // Error message
+                if (errorMessage.isNotEmpty()) {
+                    Text(
+                        text = errorMessage,
+                        fontSize = 13.sp,
+                        color = Color.Red,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    )
+                }
+
                 Text(
-                    text = "Place Order • $${String.format("%.2f", totalWithTip)}",
+                    text = if (isPlacingOrder) "Placing Order..." else "Place Order • $${String.format("%.2f", totalWithTip)}",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(
-                            if (showOrderSuccess) Color(0xFF4CAF50) else Color(0xFFCC5500),
+                            when {
+                                showOrderSuccess -> Color(0xFF4CAF50)
+                                isPlacingOrder -> Color.Gray
+                                else -> Color(0xFFCC5500)
+                            },
                             RoundedCornerShape(16.dp)
                         )
-                        .clickable {
-                            showOrderSuccess = true
+                        .clickable(enabled = !isPlacingOrder && !showOrderSuccess) {
+                            scope.launch {
+                                handlePlaceOrder()
+                            }
                         }
                         .padding(vertical = 16.dp),
                     textAlign = TextAlign.Center

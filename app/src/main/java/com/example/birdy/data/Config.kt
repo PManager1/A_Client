@@ -9,4 +9,7 @@ object Config {
 
     // Stripe — matches iOS BirdyKit/Config.swift
     const val STRIPE_PUBLISHABLE_KEY = "pk_live_51SFypI0MYmEMIsHRC9TByy2moodTCLKiIQJi4rR8fBbh57vTStvOTpHiFGsMsQ6B4GRYMW6RnvEzx2JPGpL4tfDi003HADHoC0"
+
+    // Mapbox — public access token for map rendering (loaded from local.properties via BuildConfig)
+    val MAPBOX_ACCESS_TOKEN: String = com.example.birdy.BuildConfig.MAPBOX_ACCESS_TOKEN
 }

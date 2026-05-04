@@ -81,6 +81,11 @@ fun StoreScreen(
                 storeData = loadStoreData(jsonInputStream)
             }
             if (storeData == null) loadError = true
+            // Set cart restaurant context — matches iOS setting cart.restaurantId
+            if (storeData != null) {
+                CartManager.restaurantId = restaurantId
+                CartManager.restaurantName = storeData!!.brand_info.name
+            }
         } catch (e: Exception) {
             loadError = true
         }

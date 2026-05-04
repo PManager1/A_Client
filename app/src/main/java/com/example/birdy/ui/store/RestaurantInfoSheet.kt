@@ -39,11 +39,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import com.example.birdy.data.Config
+import com.mapbox.geojson.Point
+import com.mapbox.maps.CameraOptions
+import com.mapbox.maps.MapInitOptions
+import com.mapbox.maps.MapView
+import com.mapbox.maps.plugin.annotation.annotations
+import com.mapbox.maps.plugin.gestures.gestures
+import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
+import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -119,6 +130,53 @@ fun RestaurantInfoSheet(
         }
 
         Spacer(modifier = Modifier.height(12.dp))
+
+        // 2. MAP VIEW — static Mapbox map with restaurant pin
+        val lat = data.location_info.latitude
+        val lng = data.location_info.longitude
+        if (lat != 0.0 && lng != 0.0) {
+            val restaurantPoint = Point.fromLngLat(lng, lat)
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(16.dp))
+            ) {
+                AndroidView(
+                    factory = { factoryContext ->
+                        MapView(factoryContext, MapInitOptions(
+                            context = factoryContext
+                        )).also { mapView ->
+                            val mapboxMap = mapView.getMapboxMap()
+                            mapboxMap.setCamera(
+                                CameraOptions.Builder()
+                                    .center(restaurantPoint)
+                                    .zoom(15.0)
+                                    .build()
+                            )
+                            mapboxMap.loadStyle("mapbox://styles/mapbox/streets-v18") { style ->
+                                val annotationPlugin = mapView.annotations
+                                val pointAnnotationManager = annotationPlugin.createPointAnnotationManager()
+                                val annotationOptions = PointAnnotationOptions()
+                                    .withPoint(restaurantPoint)
+                                pointAnnotationManager.create(annotationOptions)
+                            }
+                            mapView.gestures.updateSettings {
+                                scrollEnabled = false
+                                pinchToZoomEnabled = false
+                                rotateEnabled = false
+                                pitchEnabled = false
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+        }
 
         // 3. ADDRESS SECTION (matches iOS ModernSection)
         Column(

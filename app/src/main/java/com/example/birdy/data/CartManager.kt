@@ -25,6 +25,10 @@ object CartManager {
 
     var promoCode by mutableStateOf("")
 
+    // Current restaurant context — matches iOS CartManager.shared.restaurantId
+    var restaurantId by mutableStateOf("")
+    var restaurantName by mutableStateOf("")
+
     // Bridge to present driver tracking map — matches iOS CartManager.shared.showDriverTracking
     var showDriverTracking by mutableStateOf(false)
 

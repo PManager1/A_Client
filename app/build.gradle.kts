@@ -1,8 +1,17 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
+
+// Load secrets from local.properties
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) load(file.inputStream())
+}
+val mapboxToken: String = localProperties.getProperty("MAPBOX_ACCESS_TOKEN", "")
 
 android {
     namespace = "com.example.birdy"
@@ -36,6 +45,13 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+
+    defaultConfig {
+        // Inject Mapbox token into BuildConfig and AndroidManifest
+        buildConfigField("String", "MAPBOX_ACCESS_TOKEN", "\"$mapboxToken\"")
+        manifestPlaceholders["MAPBOX_ACCESS_TOKEN"] = mapboxToken
     }
 }
 
@@ -65,6 +81,9 @@ dependencies {
     // Google Maps SDK for Android
     implementation("com.google.android.gms:play-services-maps:19.1.0")
     implementation("com.google.android.gms:play-services-location:21.3.0")
+
+    // Mapbox Maps SDK
+    implementation("com.mapbox.maps:android:11.7.1")
 
     // Firebase Realtime Database
     implementation(platform("com.google.firebase:firebase-bom:33.13.0"))

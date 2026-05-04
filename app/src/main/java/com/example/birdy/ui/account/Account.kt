@@ -68,7 +68,7 @@ private val OrangeSec3 = Color(0xFFFF9500)
 // Navigation pages for Account sub-screens
 enum class AccountPage {
     Main, Help, Wallet, Pass, ManageAccount, SignIn, SignOut, DeleteAccount, Profile,
-    Settings, Referral, Notifications, Language, BugReporter
+    Settings, Referral, ReferralCode, Notifications, Language, BugReporter
 }
 
 // Matches iOS ProfessionalSettings.swift
@@ -125,7 +125,11 @@ fun AccountScreen(
             onNavigateToBugReporter = { currentPage = AccountPage.BugReporter }
         )
         AccountPage.Referral -> ReferralScreen(
-            onBack = { currentPage = AccountPage.Main }
+            onBack = { currentPage = AccountPage.Main },
+            onNavigateToReferralCode = { currentPage = AccountPage.ReferralCode }
+        )
+        AccountPage.ReferralCode -> ReferralCodeView(
+            onBack = { currentPage = AccountPage.Referral }
         )
         AccountPage.Notifications -> NotificationsScreen(
             onBack = { currentPage = AccountPage.Main }
