@@ -1,7 +1,8 @@
 package com.example.birdy.data
 
-import android.content.Context
+import com.example.birdy.data.Config.API_BASE_URL
 import org.json.JSONObject
+import java.net.URL
 
 // MARK: - Legacy Models (kept for backward compatibility)
 
@@ -20,7 +21,7 @@ data class DeliveryRestaurant(
     val imagePlaceholder: Long = 0xFFBB86FC
 )
 
-// MARK: - JSON Data Models (match homefeed.json / iOS HomeFeedData)
+// MARK: - JSON Data Models (match /homefeed API response)
 
 data class HomeFeedData(
     val featuredBanners: List<FeaturedBanner>,
@@ -41,6 +42,16 @@ data class FeedSection(
     val restaurants: List<FeedRestaurant>
 )
 
+data class FeedFoodItem(
+    val id: String,
+    val name: String,
+    val basePrice: Double,
+    val imageURL: String,
+    val isAvailable: Boolean,
+    val promoText: String,
+    val isSponsored: Boolean
+)
+
 data class FeedRestaurant(
     val id: String,
     val restaurantName: String,
@@ -53,8 +64,9 @@ data class FeedRestaurant(
     val deliveryFee: Double,
     val promoText: String,
     val isSponsored: Boolean,
-    val foodItems: List<String>,
-    val isNew: Boolean
+    val foodItems: List<FeedFoodItem>,
+    val isNew: Boolean,
+    val phone: String
 ) {
     /** Format review count: 6000 → "6k+", 1200 → "1.2k+", 500 → "500+" */
     val reviewsDisplay: String
@@ -88,7 +100,7 @@ data class FeedRestaurant(
 
 // MARK: - Static Data (categories — hardcoded for now, will come from backend later)
 
-object FoodDeliveryData {
+object HomeFDData {
 
     val categories = listOf(
         FoodCategory("Fast Food", "🍟"),
@@ -113,15 +125,19 @@ object FoodDeliveryData {
         FoodCategory("Japanese", "🍣")
     )
 
-    // MARK: - Load Home Feed from JSON
-    fun loadHomeFeed(context: Context): HomeFeedData? {
+    // MARK: - Load Home Feed from API
+
+    /** Blocking network call — must be called from a background thread (e.g. IO dispatcher) */
+    fun fetchHomeFeed(): HomeFeedData? {
         return try {
-            val json = context.assets.open("homefeed.json")
-                .bufferedReader()
-                .use { it.readText() }
+            val url = URL("$API_BASE_URL/homefeed")
+            val connection = url.openConnection()
+            connection.connectTimeout = 10_000
+            connection.readTimeout = 15_000
+            val json = connection.getInputStream().bufferedReader().use { it.readText() }
             parseHomeFeed(json)
         } catch (e: Exception) {
-            println("❌ [FoodDeliveryData] Failed to load homefeed.json: ${e.message}")
+            println("❌ [HomeFDData] Failed to fetch /homefeed: ${e.message}")
             null
         }
     }
@@ -130,7 +146,7 @@ object FoodDeliveryData {
         val root = JSONObject(json)
 
         // Parse banners
-        val bannersArray = root.getJSONArray("featured_banners")
+        val bannersArray = root.optJSONArray("featured_banners") ?: org.json.JSONArray()
         val banners = (0 until bannersArray.length()).map { i ->
             val b = bannersArray.getJSONObject(i)
             val colorsArray = b.optJSONArray("gradient_colors")
@@ -161,9 +177,21 @@ object FoodDeliveryData {
                     (0 until imagesArray.length()).map { imagesArray.getString(it) }
                 } else emptyList()
 
-                val foodItemsArray = r.optJSONArray("foodItems")
-                val foodItems = if (foodItemsArray != null) {
-                    (0 until foodItemsArray.length()).map { foodItemsArray.getString(it) }
+                // Parse food items (API returns "items" array of objects)
+                val itemsArray = r.optJSONArray("items") ?: r.optJSONArray("foodItems")
+                val foodItems = if (itemsArray != null) {
+                    (0 until itemsArray.length()).map { k ->
+                        val item = itemsArray.getJSONObject(k)
+                        FeedFoodItem(
+                            id = item.optString("id"),
+                            name = item.optString("name"),
+                            basePrice = item.optDouble("basePrice", 0.0),
+                            imageURL = item.optString("imageUrl", ""),
+                            isAvailable = item.optBoolean("isAvailable", true),
+                            promoText = item.optString("promoText", ""),
+                            isSponsored = item.optBoolean("isSponsored", false)
+                        )
+                    }
                 } else emptyList()
 
                 FeedRestaurant(
@@ -179,7 +207,8 @@ object FoodDeliveryData {
                     promoText = r.optString("promoText", ""),
                     isSponsored = r.optBoolean("isSponsored", false),
                     foodItems = foodItems,
-                    isNew = r.optBoolean("isNew", false)
+                    isNew = r.optBoolean("isNew", false),
+                    phone = r.optString("phone", "")
                 )
             }
             FeedSection(heading = heading, restaurants = restaurants)

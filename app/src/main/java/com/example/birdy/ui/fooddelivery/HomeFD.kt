@@ -17,46 +17,49 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.birdy.data.FoodDeliveryData
+import com.example.birdy.data.HomeFDData
 import com.example.birdy.data.HomeFeedData
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
- * Food Delivery Screen — replicates iOS FoodDeliveryView.swift
+ * Home FD Screen — replicates iOS HomeFD.swift
  *
- * Loads data from homefeed.json (banners + dynamic sections)
+ * Loads data from /homefeed API (live backend)
  * Sections (top to bottom):
  * 1. Header (address pin + notification bell + cart)
  * 2. Search bar (disabled, navigates to search on tap)
  * 3. Category horizontal scroll (20 emoji categories)
- * 4. Featured banners (from JSON)
- * 5. Dynamic sections with restaurant cards (from JSON)
+ * 4. Featured banners (from API)
+ * 5. Dynamic sections with restaurant cards (from API)
  */
 @Composable
-fun FoodDeliveryScreen(
+fun HomeFDScreen(
     onNavigateToSearch: () -> Unit = {},
     onNavigateToCart: () -> Unit = {},
     onRestaurantClick: (restaurantName: String) -> Unit = {},
     onCategoryClick: (categoryName: String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-
     // Address state (stub — will connect to AddressService later)
     var selectedAddress by remember { mutableStateOf<String?>(null) }
     var selectedAddressId by remember { mutableStateOf<String?>(null) }
     var isLoadingAddress by remember { mutableStateOf(false) }
     var showAddressSheet by remember { mutableStateOf(false) }
 
-    // JSON-driven data
+    // API-driven data
     var homeFeed by remember { mutableStateOf<HomeFeedData?>(null) }
 
-    // Load home feed from JSON on appear
+    // Fetch home feed from API on appear
     LaunchedEffect(Unit) {
-        homeFeed = FoodDeliveryData.loadHomeFeed(context)
+        withContext(Dispatchers.IO) {
+            homeFeed = HomeFDData.fetchHomeFeed()
+        }
         if (homeFeed != null) {
-            println("✅ [FoodDeliveryScreen] Loaded home feed: ${homeFeed!!.featuredBanners.size} banners, ${homeFeed!!.sections.size} sections")
+            println("✅ [HomeFDScreen] Loaded home feed: ${homeFeed!!.featuredBanners.size} banners, ${homeFeed!!.sections.size} sections")
+        } else {
+            println("⚠️ [HomeFDScreen] Home feed is null — API fetch may have failed")
         }
     }
 
@@ -71,7 +74,7 @@ fun FoodDeliveryScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             // MARK: - Header
-            FoodDeliveryHeader(
+            HomeFDHeader(
                 selectedAddress = selectedAddress,
                 isLoadingAddress = isLoadingAddress,
                 onAddressClick = {
@@ -81,7 +84,7 @@ fun FoodDeliveryScreen(
             )
 
             // MARK: - Search Bar
-            FoodSearchBar(
+            HomeFDSearchBar(
                 onClick = { onNavigateToSearch() },
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
@@ -89,8 +92,8 @@ fun FoodDeliveryScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             // MARK: - Categories
-            FoodCategoryList(
-                categories = FoodDeliveryData.categories,
+            HomeFDCategoryList(
+                categories = HomeFDData.categories,
                 onCategoryClick = { category ->
                     onCategoryClick(category.name)
                 }
@@ -98,7 +101,7 @@ fun FoodDeliveryScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // MARK: - Featured Banners (from JSON)
+            // MARK: - Featured Banners (from API)
             homeFeed?.featuredBanners?.let { banners ->
                 banners.forEach { banner ->
                     DynamicPromoBannerView(
@@ -109,7 +112,7 @@ fun FoodDeliveryScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // MARK: - Dynamic Sections (from JSON)
+                // MARK: - Dynamic Sections (from API)
                 homeFeed?.sections?.forEach { section ->
                     FeedRestaurantSection(
                         title = section.heading,

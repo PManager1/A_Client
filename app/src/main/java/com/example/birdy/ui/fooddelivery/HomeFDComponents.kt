@@ -59,7 +59,7 @@ import java.util.Locale
 
 @Suppress("UNUSED")
 @Composable
-fun FoodDeliveryHeader(
+fun HomeFDHeader(
     selectedAddress: String?,
     isLoadingAddress: Boolean,
     onAddressClick: () -> Unit,
@@ -143,7 +143,7 @@ fun FoodDeliveryHeader(
 
 @Suppress("UNUSED")
 @Composable
-fun FoodSearchBar(
+fun HomeFDSearchBar(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -181,7 +181,7 @@ fun FoodSearchBar(
 // ============================================================================
 
 @Composable
-fun FoodCategoryItem(
+fun HomeFDCategoryItem(
     category: FoodCategory,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {}
@@ -210,7 +210,7 @@ fun FoodCategoryItem(
 
 @Suppress("UNUSED")
 @Composable
-fun FoodCategoryList(
+fun HomeFDCategoryList(
     categories: List<FoodCategory>,
     modifier: Modifier = Modifier,
     onCategoryClick: (FoodCategory) -> Unit = {}
@@ -220,7 +220,7 @@ fun FoodCategoryList(
         modifier = modifier.padding(horizontal = 16.dp)
     ) {
         itemsIndexed(categories) { _, category ->
-            FoodCategoryItem(
+            HomeFDCategoryItem(
                 category = category,
                 onClick = { onCategoryClick(category) }
             )

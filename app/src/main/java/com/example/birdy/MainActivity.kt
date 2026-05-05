@@ -33,7 +33,7 @@ import com.example.birdy.ui.store.StoreScreen
 import com.example.birdy.ui.explore.CartScreen
 import com.example.birdy.ui.explore.CheckoutScreen
 import com.example.birdy.ui.explore.DriverTrackingScreen
-import com.example.birdy.ui.fooddelivery.FoodDeliveryScreen
+import com.example.birdy.ui.fooddelivery.HomeFDScreen
 import com.example.birdy.ui.inbox.InboxScreen
 import com.example.birdy.ui.inbox.RequestDetailScreen
 import com.example.birdy.ui.theme.BirdyTheme
@@ -102,7 +102,7 @@ fun BirdyApp() {
                 .consumeWindowInsets(innerPadding)
         ) {
             when (selectedTab) {
-                TAB_HOME -> FoodDeliveryScreen(
+                TAB_HOME -> HomeFDScreen(
                     onNavigateToSearch = {
                         // TODO: Navigate to Search screen
                     },
