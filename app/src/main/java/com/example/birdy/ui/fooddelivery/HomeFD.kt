@@ -38,7 +38,7 @@ import kotlinx.coroutines.withContext
 fun HomeFDScreen(
     onNavigateToSearch: () -> Unit = {},
     onNavigateToCart: () -> Unit = {},
-    onRestaurantClick: (restaurantName: String) -> Unit = {},
+    onRestaurantClick: (restaurantId: String) -> Unit = {},
     onCategoryClick: (categoryName: String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -117,7 +117,7 @@ fun HomeFDScreen(
                     FeedRestaurantSection(
                         title = section.heading,
                         restaurants = section.restaurants,
-                        onRestaurantClick = { onRestaurantClick(it.restaurantName) }
+                        onRestaurantClick = { onRestaurantClick(it.id) }
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))

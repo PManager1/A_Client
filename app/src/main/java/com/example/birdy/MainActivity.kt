@@ -102,20 +102,44 @@ fun BirdyApp() {
                 .consumeWindowInsets(innerPadding)
         ) {
             when (selectedTab) {
-                TAB_HOME -> HomeFDScreen(
-                    onNavigateToSearch = {
-                        // TODO: Navigate to Search screen
-                    },
-                    onNavigateToCart = {
-                        // TODO: Navigate to Cart screen
-                    },
-                    onRestaurantClick = { restaurantName ->
-                        // TODO: Navigate to restaurant detail
-                    },
-                    onCategoryClick = { categoryName ->
-                        // TODO: Navigate to category results
+                TAB_HOME -> {
+                    when {
+                        showCart -> {
+                            CartScreen(
+                                onBack = { showCart = false },
+                                onCheckout = {
+                                    showCart = false
+                                    showCheckout = true
+                                }
+                            )
+                        }
+                        showStore -> {
+                            StoreScreen(
+                                onBack = { showStore = false },
+                                onViewCart = { showCart = true },
+                                restaurantId = selectedRestaurantId,
+                                jsonInputStream = if (selectedRestaurantId.isEmpty()) context.assets.open("storejson.json") else null
+                            )
+                        }
+                        else -> {
+                            HomeFDScreen(
+                                onNavigateToSearch = {
+                                    // TODO: Navigate to Search screen
+                                },
+                                onNavigateToCart = {
+                                    showCart = true
+                                },
+                                onRestaurantClick = { restaurantId ->
+                                    selectedRestaurantId = restaurantId
+                                    showStore = true
+                                },
+                                onCategoryClick = { categoryName ->
+                                    // TODO: Navigate to category results
+                                }
+                            )
+                        }
                     }
-                )
+                }
 
                 TAB_EXPLORE -> {
                     when {
