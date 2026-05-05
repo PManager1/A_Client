@@ -1,0 +1,119 @@
+{
+  "featured_banners": [
+    {
+      "id": "promo_001",
+      "title": "Buy 2, save $2 on select\nPringles and Cheez-It items",
+      "subtitle": "Now - 4/6. Terms apply.",
+      "gradient_colors": ["#4facfe", "#00f2fe"],
+      "action_text": "Order now",
+      "image_url": ""
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Fastest near you",
+      "restaurants": [
+        {
+          "id": "69e6cff6b53edca6a168a923",
+          "restaurantName": "Taco Bell",
+          "logoURL": "",
+          "images": ["https://storage.googleapis.com/birdyimages/69dd3779b13fdb140964940d_46daa6a8d18922cac8d698706c60da61.jpg", "https://storage.googleapis.com/birdyimages/69dd3779b13fdb140964940d_b7efb632aebb1efe80d342da027182db.jpg", "https://storage.googleapis.com/birdyimages/69dd3779b13fdb140964940d_7faddc971173a92f1b8a2fc6754ac65a.webp"],
+          "rating": 4.0,
+          "reviewCount": 6000,
+          "distance": 1.5,
+          "deliveryTime": 30,
+          "deliveryFee": 0.0,
+          "promoText": "",
+          "isSponsored": false,
+          "foodItems": [],
+          "isNew": false
+        },
+        {
+          "id": "70f7dff7c64fedb7b279b034",
+          "restaurantName": "Chick-A-Licious",
+          "logoURL": "",
+          "images": ["chicken_placeholder"],
+          "rating": 4.2,
+          "reviewCount": 1000,
+          "distance": 2.1,
+          "deliveryTime": 25,
+          "deliveryFee": 0.0,
+          "promoText": "",
+          "isSponsored": false,
+          "foodItems": [],
+          "isNew": false
+        }
+      ]
+    },
+    {
+      "heading": "Most loved",
+      "restaurants": [
+        {
+          "id": "69e6cff6b53edca6a168a923",
+          "restaurantName": "Taco Bell",
+          "logoURL": "",
+          "images": ["taco_placeholder"],
+          "rating": 4.0,
+          "reviewCount": 6000,
+          "distance": 1.5,
+          "deliveryTime": 30,
+          "deliveryFee": 0.0,
+          "promoText": "",
+          "isSponsored": false,
+          "foodItems": [],
+          "isNew": false
+        },
+        {
+          "id": "70f7dff7c64fedb7b279b034",
+          "restaurantName": "Chick-A-Licious",
+          "logoURL": "",
+          "images": ["chicken_placeholder"],
+          "rating": 4.2,
+          "reviewCount": 1000,
+          "distance": 2.1,
+          "deliveryTime": 25,
+          "deliveryFee": 0.0,
+          "promoText": "",
+          "isSponsored": false,
+          "foodItems": [],
+          "isNew": false
+        }
+      ]
+    },
+    {
+      "heading": "Most Popular local",
+      "restaurants": [
+        {
+          "id": "bens-chili-bowl-id",
+          "restaurantName": "Ben's Chili Bowl",
+          "logoURL": "",
+          "images": ["bens_chili_placeholder"],
+          "rating": 4.7,
+          "reviewCount": 12000,
+          "distance": 0.5,
+          "deliveryTime": 15,
+          "deliveryFee": 0.0,
+          "promoText": "",
+          "isSponsored": false,
+          "foodItems": [],
+          "isNew": false
+        },
+        {
+          "id": "wisemillers-deli-id",
+          "restaurantName": "Wisemiller's Deli",
+          "logoURL": "",
+          "images": ["wise_deli_placeholder"],
+          "rating": 4.9,
+          "reviewCount": 1200,
+          "distance": 1.1,
+          "deliveryTime": 22,
+          "deliveryFee": 0.0,
+          "promoText": "",
+          "isSponsored": false,
+          "foodItems": [],
+          "isNew": false
+        }
+      ]
+    }
+  ]
+}

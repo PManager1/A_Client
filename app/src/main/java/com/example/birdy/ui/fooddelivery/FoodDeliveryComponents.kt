@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
@@ -38,10 +40,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.birdy.data.DeliveryRestaurant
+import com.example.birdy.data.FeaturedBanner
+import com.example.birdy.data.FeedRestaurant
 import com.example.birdy.data.FoodCategory
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -433,6 +439,308 @@ fun RestaurantSection(
         ) {
             itemsIndexed(restaurants) { _, restaurant ->
                 RestaurantCard(
+                    restaurant = restaurant,
+                    onClick = { onRestaurantClick(restaurant) }
+                )
+            }
+        }
+    }
+}
+
+// ============================================================================
+// MARK: - Dynamic Promo Banner View (JSON-driven)
+// Matches iOS: PromoBannerView(banner:) — takes FeaturedBanner from JSON
+// ============================================================================
+
+@Composable
+fun DynamicPromoBannerView(
+    banner: FeaturedBanner,
+    modifier: Modifier = Modifier,
+    onAction: () -> Unit = {}
+) {
+    // Parse gradient colors from hex strings (e.g. "#4facfe" → Color)
+    val gradientColors = if (banner.gradientColors.isNotEmpty()) {
+        banner.gradientColors.mapNotNull { hex ->
+            try {
+                Color(android.graphics.Color.parseColor(hex))
+            } catch (_: Exception) { null }
+        }
+    } else {
+        listOf(Color(0xFF1565C0), Color(0xFF1E88E5))
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                Brush.horizontalGradient(colors = gradientColors),
+                RoundedCornerShape(15.dp)
+            )
+            .padding(16.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = banner.title,
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = banner.subtitle,
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 13.sp
+                )
+                Box(
+                    modifier = Modifier
+                        .background(Color.White, RoundedCornerShape(50.dp))
+                        .clickable { onAction() }
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = banner.actionText,
+                        color = Color.Red,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+            // Image or placeholder
+            if (banner.imageUrl.isNotEmpty() && banner.imageUrl.startsWith("http")) {
+                AsyncImage(
+                    model = banner.imageUrl,
+                    contentDescription = banner.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(100.dp)
+                        .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                )
+            }
+        }
+    }
+}
+
+// ============================================================================
+// MARK: - Feed Restaurant Card (JSON-driven)
+// Matches iOS: RestaurantCard(restaurant:) — takes FeedRestaurant from JSON
+// ============================================================================
+
+@Composable
+fun FeedRestaurantCard(
+    restaurant: FeedRestaurant,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
+) {
+    val validImages = restaurant.images.filter { it.isNotEmpty() }
+
+    Column(
+        modifier = modifier
+            .width(280.dp)
+            .clickable { onClick() }
+    ) {
+        // Image carousel (shows first image + heart button)
+        Box(
+            modifier = Modifier
+                .width(280.dp)
+                .height(160.dp)
+                .background(Color(0xFFF5F5F5), RoundedCornerShape(15.dp))
+        ) {
+            if (validImages.isEmpty()) {
+                // No images — show placeholder
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PhotoCamera,
+                        contentDescription = "No image",
+                        tint = Color.Gray.copy(alpha = 0.5f),
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            } else {
+                // Show first image (URL or asset name)
+                val imageSource = validImages.first()
+                if (imageSource.startsWith("http")) {
+                    AsyncImage(
+                        model = imageSource,
+                        contentDescription = restaurant.restaurantName,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    // Asset placeholder — show colored box with name
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFFE8E8E8))
+                    ) {
+                        Text(
+                            text = restaurant.restaurantName.take(2),
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Gray
+                        )
+                    }
+                }
+
+                // Page indicator (if multiple images)
+                if (validImages.size > 1) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 12.dp, bottom = 12.dp)
+                            .background(Color.Black.copy(alpha = 0.2f), RoundedCornerShape(50))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "1/${validImages.size}",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
+            // Heart button (top right)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(10.dp)
+                    .background(Color.White, CircleShape)
+                    .padding(10.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FavoriteBorder,
+                    contentDescription = "Favorite",
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Restaurant name
+        Text(
+            text = restaurant.restaurantName,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+
+        Spacer(modifier = Modifier.height(2.dp))
+
+        // Rating + details
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = String.format(Locale.US, "%.1f", restaurant.rating),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Gray
+            )
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = null,
+                tint = Color.Yellow,
+                modifier = Modifier.size(12.dp)
+            )
+            Text(
+                text = "(${restaurant.reviewsDisplay}) • ${restaurant.distanceDisplay} • ${restaurant.deliveryTimeDisplay}",
+                fontSize = 12.sp,
+                color = Color.Gray
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Delivery fee badge
+        Text(
+            text = "${restaurant.deliveryFeeDisplay} delivery fee",
+            fontSize = 12.sp,
+            color = Color.Gray,
+            modifier = Modifier
+                .background(Color(0xFFF3F3F3), RoundedCornerShape(5.dp))
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+}
+
+// ============================================================================
+// MARK: - Feed Restaurant Section (JSON-driven)
+// Matches iOS: FeedSectionView — dynamic section with heading + scrollable cards
+// ============================================================================
+
+@Composable
+fun FeedRestaurantSection(
+    title: String,
+    restaurants: List<FeedRestaurant>,
+    modifier: Modifier = Modifier,
+    onRestaurantClick: (FeedRestaurant) -> Unit = {}
+) {
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    var currentCard by remember { mutableIntStateOf(0) }
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Section header with title + arrow button
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black,
+                modifier = Modifier.weight(1f)
+            )
+            if (restaurants.size > 1) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "Next",
+                    tint = Color.Gray,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clickable {
+                            currentCard = (currentCard + 1) % restaurants.size
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(currentCard)
+                            }
+                        }
+                )
+            }
+        }
+
+        // Horizontal restaurant cards
+        LazyRow(
+            state = listState,
+            horizontalArrangement = Arrangement.spacedBy(15.dp),
+            modifier = Modifier.padding(horizontal = 16.dp)
+        ) {
+            itemsIndexed(restaurants) { _, restaurant ->
+                FeedRestaurantCard(
                     restaurant = restaurant,
                     onClick = { onRestaurantClick(restaurant) }
                 )
