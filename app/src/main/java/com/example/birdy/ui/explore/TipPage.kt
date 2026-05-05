@@ -152,7 +152,7 @@ fun TipPage(
                         .fillMaxWidth()
                         .background(Color(0xFFF2F2F7), RoundedCornerShape(20.dp))
                         .padding(horizontal = 24.dp, vertical = 20.dp),
-                    verticalAlignment = Alignment.Bottom
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "$",
