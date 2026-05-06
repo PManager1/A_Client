@@ -1,5 +1,9 @@
 package com.example.birdy.ui.store
 
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -40,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -92,29 +97,178 @@ fun StoreScreen(
         isLoading = false
     }
 
-    // Loading skeleton
+    // Loading skeleton — clean white shimmer (matches iOS)
     if (isLoading) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .background(Color.White)
+                .verticalScroll(rememberScrollState())
         ) {
-            Box(
+            // 1. Banner placeholder
+            ShimmerBox(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(240.dp)
-                    .background(Color(0xFFF0F0F0))
             )
-            Spacer(modifier = Modifier.height(40.dp))
-            Box(
+
+            // 2. Main content area
+            Column(
                 modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
                     .padding(horizontal = 16.dp)
-                    .width(200.dp)
-                    .height(28.dp)
-                    .background(Color(0xFFE0E0E0), RoundedCornerShape(8.dp))
-            )
+            ) {
+                // Logo circle overlapping
+                Box(modifier = Modifier.offset(y = (-40).dp)) {
+                    ShimmerBox(
+                        modifier = Modifier
+                            .size(84.dp)
+                            .clip(CircleShape)
+                    )
+                }
+                Spacer(modifier = Modifier.height(-30.dp))
+
+                // Restaurant name + info
+                Column(
+                    modifier = Modifier.padding(top = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    ShimmerBox(
+                        modifier = Modifier
+                            .height(22.dp)
+                            .fillMaxWidth(0.7f)
+                            .clip(RoundedCornerShape(6.dp))
+                    )
+                    ShimmerBox(
+                        modifier = Modifier
+                            .height(14.dp)
+                            .fillMaxWidth(0.85f)
+                            .clip(RoundedCornerShape(4.dp))
+                    )
+                }
+
+                // Delivery / Pickup toggle
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ShimmerBox(
+                        modifier = Modifier
+                            .width(200.dp)
+                            .height(40.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    ShimmerBox(
+                        modifier = Modifier
+                            .width(110.dp)
+                            .height(36.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                    )
+                }
+
+                // Delivery info box
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFFF5F5F5))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        ShimmerBox(
+                            modifier = Modifier
+                                .width(120.dp)
+                                .height(16.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                        )
+                        ShimmerBox(
+                            modifier = Modifier
+                                .width(80.dp)
+                                .height(12.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                        )
+                    }
+                    HorizontalDivider(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(50.dp)
+                            .align(Alignment.CenterVertically),
+                        color = Color.Gray.copy(alpha = 0.2f)
+                    )
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        ShimmerBox(
+                            modifier = Modifier
+                                .width(100.dp)
+                                .height(16.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                        )
+                        ShimmerBox(
+                            modifier = Modifier
+                                .width(80.dp)
+                                .height(12.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(30.dp))
+
+                // Menu section title
+                ShimmerBox(
+                    modifier = Modifier
+                        .width(160.dp)
+                        .height(22.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Food card placeholders
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    repeat(4) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.width(180.dp)
+                        ) {
+                            ShimmerBox(
+                                modifier = Modifier
+                                    .size(172.dp, 170.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                            )
+                            ShimmerBox(
+                                modifier = Modifier
+                                    .width(120.dp)
+                                    .height(14.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                            )
+                            ShimmerBox(
+                                modifier = Modifier
+                                    .width(60.dp)
+                                    .height(12.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(60.dp))
+            }
         }
         return
     }
@@ -504,5 +658,40 @@ fun StoreScreen(
             }
         )
     }
+}
+
+// MARK: - Shimmer Loading Component (clean white style, matches iOS)
+@Composable
+fun ShimmerBox(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val translateAnim by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1000f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200)
+        ),
+        label = "shimmerSlide"
+    )
+
+    val shimmerColor = Color(0xFFF5F5F5)  // Very light gray (systemGray6 equivalent)
+    val shimmerHighlight = Color.White.copy(alpha = 0.7f)
+
+    Box(
+        modifier = modifier
+            .background(shimmerColor)
+            .then(
+                Modifier.background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            shimmerColor,
+                            shimmerHighlight,
+                            shimmerColor,
+                        ),
+                        start = Offset(translateAnim - 300f, translateAnim - 300f),
+                        end = Offset(translateAnim, translateAnim)
+                    )
+                )
+            )
+    )
 }
 
