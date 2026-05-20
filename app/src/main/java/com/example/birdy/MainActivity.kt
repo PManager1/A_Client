@@ -23,8 +23,10 @@ import com.example.birdy.data.AuthManager
 import com.example.birdy.data.CartManager
 import com.example.birdy.data.Config
 import com.stripe.android.PaymentConfiguration
+import com.example.birdy.data.ForceUpdateChecker
 import com.example.birdy.ui.account.AccountScreen
 import com.example.birdy.ui.components.BirdyBottomNavBar
+import com.example.birdy.ui.components.ForceUpdateDialog
 import com.example.birdy.data.ExploreCategory
 import com.example.birdy.ui.explore.ExploreScreen
 import com.example.birdy.ui.explore.NewFoodPlacesScreen
@@ -39,6 +41,8 @@ import com.example.birdy.ui.inbox.InboxScreen
 import com.example.birdy.ui.inbox.RequestDetailScreen
 import com.example.birdy.ui.theme.BirdyTheme
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.launch
 
 // Tab indices — matches iOS NavigationFlow.swift selectedTab
 private const val TAB_HOME = 0
@@ -78,6 +82,21 @@ fun BirdyApp() {
     var showCheckout by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf<ExploreCategory?>(null) }
     val context = LocalContext.current
+
+    // Force update check
+    var showForceUpdate by remember { mutableStateOf(false) }
+    var forceUpdateMinVersion by remember { mutableStateOf("0.0.0") }
+    LaunchedEffect(Unit) {
+        val result = ForceUpdateChecker.check(context)
+        if (result.needsUpdate) {
+            forceUpdateMinVersion = result.minVersion
+            showForceUpdate = true
+        }
+    }
+    if (showForceUpdate) {
+        ForceUpdateDialog(minVersion = forceUpdateMinVersion)
+        return
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
