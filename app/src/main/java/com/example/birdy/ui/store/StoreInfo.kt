@@ -23,8 +23,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.material.icons.filled.DirectionsBike
+import androidx.core.net.toUri
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Phone
@@ -49,7 +49,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
-import com.example.birdy.data.Config
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapInitOptions
@@ -268,7 +267,7 @@ fun StoreInfo(
                             .size(36.dp)
                             .background(Color(0xFF4CAF50), CircleShape)
                             .clickable {
-                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${data.location_info.phone}"))
+                                val intent = Intent(Intent.ACTION_DIAL, "tel:${data.location_info.phone}".toUri())
                                 context.startActivity(intent)
                             },
                         contentAlignment = Alignment.Center

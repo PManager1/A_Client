@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.ContactsContract
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -26,12 +25,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -59,6 +55,8 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -98,18 +96,17 @@ data class ReferralInvite(
     val earned: Double
 )
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun ReferralScreen(
     onBack: () -> Unit = {},
     onNavigateToReferralCode: () -> Unit = {}
 ) {
-    var invitees by remember { mutableStateOf(0) }
-    var totalEarned by remember { mutableStateOf(0.0) }
+    var invitees by remember { mutableIntStateOf(0) }
+    var totalEarned by remember { mutableDoubleStateOf(0.0) }
     var showingInviteOptions by remember { mutableStateOf(false) }
     var showingInvites by remember { mutableStateOf(false) }
     var showSMSError by remember { mutableStateOf(false) }
-    var selectedPhoneNumbers by remember { mutableStateOf(listOf<String>()) }
-
     // Referral code state
     var referralCode by remember { mutableStateOf("") }
     var isLoadingCode by remember { mutableStateOf(false) }
@@ -156,13 +153,12 @@ fun ReferralScreen(
                 }
             }
             if (phoneNumbers.isNotEmpty()) {
-                selectedPhoneNumbers = phoneNumbers
                 val smsIntent = Intent(Intent.ACTION_SENDTO, Uri.parse("sms:${phoneNumbers.joinToString(",")}")).apply {
                     putExtra("sms_body", inviteMessage)
                 }
                 try {
                     context.startActivity(smsIntent)
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     showSMSError = true
                 }
             }
@@ -236,7 +232,7 @@ fun ReferralScreen(
                 )
 
                 Text(
-                    text = "Refer Friends, Earn Big\u2014up to \$500! per referral",
+                    text = "Refer Friends, Earn Big\u2014up to $500! per referral",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = OrangeSec7
@@ -262,7 +258,7 @@ fun ReferralScreen(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "Get up to \$400 for referrals",
+                                text = "Get up to $400 for referrals",
                                 fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = OrangeSec7
@@ -409,7 +405,7 @@ fun ReferralScreen(
                         } else {
                             // Display mode
                             Text(
-                                text = if (referralCode.isEmpty()) "------" else referralCode,
+                                text = referralCode.ifEmpty { "------" },
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
@@ -664,7 +660,7 @@ fun ReferralScreen(
                             showingInviteOptions = false
                             try {
                                 contactPickerLauncher.launch(null)
-                            } catch (e: Exception) {
+                            } catch (_: Exception) {
                                 showSMSError = true
                             }
                         }

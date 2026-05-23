@@ -85,7 +85,7 @@ sealed class PromoCodeError(message: String) : Exception(message) {
 // MARK: - ReferralCodeService (Singleton, matches iOS ReferralCodeService)
 object ReferralCodeService {
 
-    private val baseURL = Config.API_BASE_URL + "/api/promo"
+    private val baseURL = Config.API_BASE_URL + "/promo"
 
     private val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
         timeZone = TimeZone.getTimeZone("UTC")

@@ -48,9 +48,6 @@ fun ReferralCodeView(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Auto-generate on first load — matches iOS .onAppear
-    var hasLoaded by remember { mutableStateOf(false) }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -329,13 +326,6 @@ fun ReferralCodeView(
         )
     }
 
-    // Auto-generate on first load
-    LaunchedEffect(Unit) {
-        if (!hasLoaded) {
-            hasLoaded = true
-            // Pre-fill default commission fee to trigger auto-generate
-        }
-    }
 }
 
 private fun statusColor(status: String): Color {
