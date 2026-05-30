@@ -67,7 +67,8 @@ fun StoreScreen(
     onSearchClick: (() -> Unit)? = null,
     restaurantId: String = "",
     storeName: String = "",
-    jsonInputStream: InputStream? = null
+    jsonInputStream: InputStream? = null,
+    isGrocery: Boolean = false
 ) {
     var storeData by remember { mutableStateOf<StoreData?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -553,11 +554,13 @@ fun StoreScreen(
                                 .fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
+                            val cardW = if (isGrocery) 140.dp else 180.dp
                             category.items.forEach { item ->
                                 StoreFoodCard(
                                     menuItem = item,
                                     restaurantName = data.brand_info.name,
-                                    onItemTap = { selectedItem = item }
+                                    onItemTap = { selectedItem = item },
+                                    cardWidth = cardW
                                 )
                             }
                         }

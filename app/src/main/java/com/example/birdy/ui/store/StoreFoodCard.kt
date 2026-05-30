@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -38,7 +39,8 @@ import com.example.birdy.data.CartManager
 fun StoreFoodCard(
     menuItem: StoreMenuItem,
     restaurantName: String,
-    onItemTap: () -> Unit = {}
+    onItemTap: () -> Unit = {},
+    cardWidth: Dp = 180.dp
 ) {
     val cartQuantity = CartManager.items
         .filter { it.dishName == menuItem.name }
@@ -47,7 +49,7 @@ fun StoreFoodCard(
     val hasModifiers = menuItem.modifier_groups.isNotEmpty()
 
     Column(
-        modifier = Modifier.width(180.dp),
+        modifier = Modifier.width(cardWidth),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // Image with add/stepper button

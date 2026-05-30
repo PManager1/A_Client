@@ -306,13 +306,66 @@ suspend fun fetchStoreDetail(restaurantId: String, storeName: String = ""): Stor
             if (result != null) return@withContext result
         } catch (_: Exception) { }
 
-        // 3. Try API with /grocery-stores/ path (for grocery stores)
+        // 3. Try grocery store API — fetch store info + items separately (matches iOS fetchGroceryStore)
         try {
-            val url = "${Config.API_BASE_URL}/grocery-stores/$restaurantId"
-            val jsonStr = java.net.URL(url).readText()
-            val result = parseStoreJson(JSONObject(jsonStr))
-            if (result != null) return@withContext result
-        } catch (_: Exception) { }
+            val storeUrl = "${Config.API_BASE_URL}/grocery-stores/$restaurantId"
+            val storeJsonStr = java.net.URL(storeUrl).readText()
+            val storeJson = JSONObject(storeJsonStr)
+
+            val gStoreName = storeJson.optString("name", storeName.ifEmpty { "Grocery Store" })
+            val gLogoUrl = storeJson.optString("logoUrl", "")
+
+            // Fetch items from /grocery-stores/{id}/items
+            val itemsUrl = "${Config.API_BASE_URL}/grocery-stores/$restaurantId/items"
+            val itemsJsonStr = java.net.URL(itemsUrl).readText()
+            val itemsRoot = JSONObject(itemsJsonStr)
+
+            // Items may be in {"items": [...]} or a bare array
+            val itemsArr = if (itemsRoot.has("items")) itemsRoot.getJSONArray("items") else JSONArray(itemsJsonStr)
+
+            val menuItems = (0 until itemsArr.length()).map { i ->
+                val item = itemsArr.getJSONObject(i)
+                StoreMenuItem(
+                    id = item.optString("id", "g-$i"),
+                    name = item.optString("name", "Item"),
+                    description = item.optString("description", ""),
+                    price = item.optDouble("price", 0.0),
+                    image_url = item.optString("imageUrl", ""),
+                    is_available = true,
+                    modifier_groups = emptyList()
+                )
+            }
+
+            val groceryStoreData = StoreData(
+                restaurant_id = restaurantId,
+                brand_info = StoreBrandInfo(
+                    name = gStoreName,
+                    logo_url = gLogoUrl,
+                    banner_image_url = "",
+                    rating = 4.5,
+                    review_count = "Grocery",
+                    cuisine = "Grocery",
+                    tags = listOf("Grocery", "Delivery")
+                ),
+                location_info = StoreLocationInfo(
+                    distance = "",
+                    delivery_fee = 0.0,
+                    delivery_time_est = "30 min",
+                    address = "",
+                    phone = null,
+                    operating_hours = null,
+                    latitude = 0.0,
+                    longitude = 0.0
+                ),
+                menu = if (menuItems.isNotEmpty()) listOf(
+                    StoreMenuCategory(category_name = "All Items", items = menuItems)
+                ) else emptyList()
+            )
+            println("✅ [StoreApi] Loaded grocery store: $gStoreName with ${menuItems.size} items")
+            return@withContext groceryStoreData
+        } catch (e: Exception) {
+            println("⚠️ [StoreApi] Grocery store fetch failed: ${e.message}")
+        }
 
         // 4. Mock fallback — try mock data again
         if (mockJson != null) {

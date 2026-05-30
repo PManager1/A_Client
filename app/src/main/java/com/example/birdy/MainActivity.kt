@@ -81,6 +81,7 @@ fun BirdyApp() {
     var showStore by remember { mutableStateOf(false) }
     var selectedRestaurantId by remember { mutableStateOf("") }
     var selectedStoreName by remember { mutableStateOf("") }
+    var selectedIsGrocery by remember { mutableStateOf(false) }
     var showCart by remember { mutableStateOf(false) }
     var showCheckout by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf<ExploreCategory?>(null) }
@@ -119,6 +120,7 @@ fun BirdyApp() {
                     showPizzaHome = false
                     showFastFoodHome = false
                     selectedStoreName = ""
+                    selectedIsGrocery = false
                 }
             )
         }
@@ -181,11 +183,19 @@ fun BirdyApp() {
                                 onRestaurantClick = { restaurantId ->
                                     selectedRestaurantId = restaurantId
                                     selectedStoreName = ""
+                                    selectedIsGrocery = false
                                     showStore = true
                                 },
                                 onGroceryStoreClick = { storeId, storeName ->
                                     selectedRestaurantId = storeId
                                     selectedStoreName = storeName
+                                    selectedIsGrocery = true
+                                    showStore = true
+                                },
+                                onGroceryStoreClick = { storeId, storeName ->
+                                    selectedRestaurantId = storeId
+                                    selectedStoreName = storeName
+                                    selectedIsGrocery = true
                                     showStore = true
                                 },
                                 onCategoryClick = { categoryName ->
