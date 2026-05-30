@@ -286,7 +286,7 @@ private val mockStoreJSON = mapOf(
 
 // MARK: - API Fetcher (with mock fallback)
 
-suspend fun fetchStoreDetail(restaurantId: String): StoreData? {
+suspend fun fetchStoreDetail(restaurantId: String, storeName: String = ""): StoreData? {
     return withContext(Dispatchers.IO) {
         // 1. Try mock data first for known IDs
         val mockJson = mockStoreJSON[restaurantId]
@@ -302,20 +302,98 @@ suspend fun fetchStoreDetail(restaurantId: String): StoreData? {
         try {
             val url = "${Config.API_BASE_URL}/restaurants/$restaurantId"
             val jsonStr = java.net.URL(url).readText()
-            parseStoreJson(JSONObject(jsonStr))
-        } catch (e: Exception) {
-            // 3. API failed — try mock fallback
-            if (mockJson != null) {
-                try {
-                    parseStoreJson(JSONObject(mockJson))
-                } catch (e2: Exception) {
-                    null
-                }
-            } else {
-                null
-            }
+            val result = parseStoreJson(JSONObject(jsonStr))
+            if (result != null) return@withContext result
+        } catch (_: Exception) { }
+
+        // 3. Try API with /grocery-stores/ path (for grocery stores)
+        try {
+            val url = "${Config.API_BASE_URL}/grocery-stores/$restaurantId"
+            val jsonStr = java.net.URL(url).readText()
+            val result = parseStoreJson(JSONObject(jsonStr))
+            if (result != null) return@withContext result
+        } catch (_: Exception) { }
+
+        // 4. Mock fallback — try mock data again
+        if (mockJson != null) {
+            try {
+                return@withContext parseStoreJson(JSONObject(mockJson))
+            } catch (_: Exception) { }
         }
+
+        // 5. Generate fallback store data using storeName (for grocery stores without API)
+        if (storeName.isNotEmpty()) {
+            return@withContext generateFallbackStoreData(restaurantId, storeName)
+        }
+
+        null
     }
+}
+
+/**
+ * Generate fallback StoreData for stores that don't have mock data or API endpoints.
+ * Used primarily for grocery stores like 7-Eleven, Target, etc.
+ */
+private fun generateFallbackStoreData(storeId: String, storeName: String): StoreData {
+    return StoreData(
+        restaurant_id = storeId,
+        brand_info = StoreBrandInfo(
+            name = storeName,
+            logo_url = "",
+            banner_image_url = "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=800",
+            rating = 4.2,
+            review_count = "100+",
+            cuisine = "Grocery",
+            tags = listOf("Grocery", "Convenience", "Delivery")
+        ),
+        location_info = StoreLocationInfo(
+            distance = "0.5 mi",
+            delivery_fee = 1.99,
+            delivery_time_est = "15-25 min",
+            address = "",
+            phone = null,
+            operating_hours = mapOf(
+                "Mon" to "6:00 AM - 11:00 PM",
+                "Tue" to "6:00 AM - 11:00 PM",
+                "Wed" to "6:00 AM - 11:00 PM",
+                "Thu" to "6:00 AM - 11:00 PM",
+                "Fri" to "6:00 AM - 12:00 AM",
+                "Sat" to "6:00 AM - 12:00 AM",
+                "Sun" to "7:00 AM - 10:00 PM"
+            ),
+            latitude = 0.0,
+            longitude = 0.0
+        ),
+        menu = listOf(
+            StoreMenuCategory(
+                category_name = "Popular Items",
+                items = listOf(
+                    StoreMenuItem(id = "$storeId-item-1", name = "Bottled Water (6pk)", description = "Purified bottled water, 6 pack", price = 3.99, image_url = "", is_available = true, modifier_groups = emptyList()),
+                    StoreMenuItem(id = "$storeId-item-2", name = "Chips Assortment", description = "Your favorite chip brands", price = 2.49, image_url = "", is_available = true, modifier_groups = emptyList()),
+                    StoreMenuItem(id = "$storeId-item-3", name = "Energy Drink", description = "Popular energy drink, 16oz", price = 3.29, image_url = "", is_available = true, modifier_groups = emptyList()),
+                    StoreMenuItem(id = "$storeId-item-4", name = "Fresh Fruit Cup", description = "Seasonal fresh fruit, pre-cut", price = 4.99, image_url = "", is_available = true, modifier_groups = emptyList())
+                )
+            ),
+            StoreMenuCategory(
+                category_name = "Snacks",
+                items = listOf(
+                    StoreMenuItem(id = "$storeId-item-5", name = "Candy Bar", description = "Assorted candy bars", price = 1.99, image_url = "", is_available = true, modifier_groups = emptyList()),
+                    StoreMenuItem(id = "$storeId-item-6", name = "Granola Bar", description = "Healthy granola snack bar", price = 2.49, image_url = "", is_available = true, modifier_groups = emptyList()),
+                    StoreMenuItem(id = "$storeId-item-7", name = "Trail Mix", description = "Mixed nuts and dried fruit", price = 4.49, image_url = "", is_available = true, modifier_groups = emptyList()),
+                    StoreMenuItem(id = "$storeId-item-8", name = "Cookies Pack", description = "Fresh baked cookies, 4 pack", price = 3.99, image_url = "", is_available = true, modifier_groups = emptyList())
+                )
+            ),
+            StoreMenuCategory(
+                category_name = "Drinks",
+                items = listOf(
+                    StoreMenuItem(id = "$storeId-item-9", name = "Soda (2L)", description = "Assorted soda flavors, 2 liter", price = 2.99, image_url = "", is_available = true, modifier_groups = emptyList()),
+                    StoreMenuItem(id = "$storeId-item-10", name = "Orange Juice", description = "Fresh orange juice, 52oz", price = 4.99, image_url = "", is_available = true, modifier_groups = emptyList()),
+                    StoreMenuItem(id = "$storeId-item-11", name = "Iced Coffee", description = "Cold brew iced coffee", price = 3.49, image_url = "", is_available = true, modifier_groups = emptyList()),
+                    StoreMenuItem(id = "$storeId-item-12", name = "Milk (1 Gallon)", description = "Whole milk, 1 gallon", price = 4.49, image_url = "", is_available = true, modifier_groups = emptyList())
+                )
+            )
+        )
+    )
 }
 
 // MARK: - JSON Parser (shared by API and local file)

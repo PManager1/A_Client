@@ -66,6 +66,7 @@ fun StoreScreen(
     onViewRestaurantInfo: (() -> Unit)? = null,
     onSearchClick: (() -> Unit)? = null,
     restaurantId: String = "",
+    storeName: String = "",
     jsonInputStream: InputStream? = null
 ) {
     var storeData by remember { mutableStateOf<StoreData?>(null) }
@@ -81,7 +82,7 @@ fun StoreScreen(
         loadError = false
         try {
             if (restaurantId.isNotEmpty()) {
-                storeData = fetchStoreDetail(restaurantId)
+                storeData = fetchStoreDetail(restaurantId, storeName = storeName)
             } else if (jsonInputStream != null) {
                 storeData = loadStoreData(jsonInputStream)
             }

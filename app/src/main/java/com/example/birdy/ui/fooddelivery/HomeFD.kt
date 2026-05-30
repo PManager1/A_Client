@@ -49,6 +49,7 @@ fun HomeFDScreen(
     onNavigateToSearch: () -> Unit = {},
     onNavigateToCart: () -> Unit = {},
     onRestaurantClick: (restaurantId: String) -> Unit = {},
+    onGroceryStoreClick: (storeId: String, storeName: String) -> Unit = { _, _ -> },
     onCategoryClick: (categoryName: String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -124,7 +125,7 @@ fun HomeFDScreen(
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             // MARK: - Categories (tab strip + subcategory icons)
             // Matches iOS: Main Category Strip + Subcategory Icons
@@ -191,7 +192,7 @@ fun HomeFDScreen(
                         stores = groceryStores,
                         onStoreClick = { store ->
                             println("🛒 [HomeFDScreen] Tapped grocery store: ${store.name} (${store.id})")
-                            // TODO: Navigate to grocery store detail when implemented
+                            onGroceryStoreClick(store.id, store.name)
                         }
                     )
                 }
