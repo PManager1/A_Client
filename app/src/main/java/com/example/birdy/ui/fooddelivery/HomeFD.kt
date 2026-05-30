@@ -1,23 +1,33 @@
 package com.example.birdy.ui.fooddelivery
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.birdy.data.GroceryStore
 import com.example.birdy.data.HomeFDData
 import com.example.birdy.data.HomeFeedData
 import kotlinx.coroutines.Dispatchers
@@ -48,6 +58,16 @@ fun HomeFDScreen(
     var isLoadingAddress by remember { mutableStateOf(false) }
     var showAddressSheet by remember { mutableStateOf(false) }
 
+    // Main category tab state — matches iOS selectedMainCategory
+    var selectedMainCategory by remember { mutableStateOf("Food") }
+    val currentSubcategories = remember(selectedMainCategory) {
+        HomeFDData.mainCategories.firstOrNull { it.name == selectedMainCategory }?.subcategories ?: emptyList()
+    }
+
+    // Grocery stores (fetched from /grocery-stores API)
+    var groceryStores by remember { mutableStateOf<List<GroceryStore>>(emptyList()) }
+    var isLoadingGroceryStores by remember { mutableStateOf(false) }
+
     // API-driven data
     var homeFeed by remember { mutableStateOf<HomeFeedData?>(null) }
     var isLoadingFeed by remember { mutableStateOf(true) }
@@ -62,6 +82,19 @@ fun HomeFDScreen(
             println("✅ [HomeFDScreen] Loaded home feed: ${homeFeed!!.featuredBanners.size} banners, ${homeFeed!!.sections.size} sections")
         } else {
             println("⚠️ [HomeFDScreen] Home feed is null — API fetch may have failed")
+        }
+    }
+
+    // Fetch grocery stores when Grocery tab is selected (matches iOS: onChange of selectedMainCategory)
+    LaunchedEffect(selectedMainCategory) {
+        if (selectedMainCategory == "Grocery" && groceryStores.isEmpty()) {
+            isLoadingGroceryStores = true
+            val stores = withContext(Dispatchers.IO) {
+                HomeFDData.fetchGroceryStores()
+            }
+            groceryStores = stores
+            isLoadingGroceryStores = false
+            println("✅ [HomeFDScreen] Loaded ${stores.size} grocery stores")
         }
     }
 
@@ -93,43 +126,107 @@ fun HomeFDScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // MARK: - Categories
-            HomeFDCategoryList(
-                categories = HomeFDData.categories,
-                onCategoryClick = { category ->
-                    onCategoryClick(category.name)
-                }
-            )
+            // MARK: - Categories (tab strip + subcategory icons)
+            // Matches iOS: Main Category Strip + Subcategory Icons
+            Column {
+                MainCategoryTabStrip(
+                    mainCategories = HomeFDData.mainCategories,
+                    selectedMainCategory = selectedMainCategory,
+                    onMainCategorySelected = { selectedMainCategory = it }
+                )
+                HomeFDCategoryList(
+                    categories = currentSubcategories,
+                    onCategoryClick = { category ->
+                        onCategoryClick(category.name)
+                    }
+                )
+            }
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // MARK: - Featured Banners or Skeleton
-            if (isLoadingFeed) {
-                SkeletonPromoBanner(modifier = Modifier.padding(horizontal = 16.dp))
-            } else {
-                homeFeed?.featuredBanners?.forEach { banner ->
-                    DynamicPromoBannerView(
-                        banner = banner,
+            // MARK: - "Fastest near you" heading for non-Food tabs
+            if (selectedMainCategory != "Food") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text(
+                        text = "Fastest near you",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            // MARK: - Grocery Stores (when Grocery tab selected)
+            if (selectedMainCategory == "Grocery") {
+                if (isLoadingGroceryStores) {
+                    // Skeleton loading
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.padding(horizontal = 16.dp)
+                    ) {
+                        items(3) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                SkeletonBlock(width = 110.dp, height = 110.dp, cornerRadius = 16.dp)
+                                SkeletonBlock(width = 80.dp, height = 14.dp, cornerRadius = 6.dp)
+                            }
+                        }
+                    }
+                } else if (groceryStores.isEmpty()) {
+                    Text(
+                        text = "No grocery stores available",
+                        fontSize = 14.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                } else {
+                    GroceryStoreList(
+                        stores = groceryStores,
+                        onStoreClick = { store ->
+                            println("🛒 [HomeFDScreen] Tapped grocery store: ${store.name} (${store.id})")
+                            // TODO: Navigate to grocery store detail when implemented
+                        }
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            // MARK: - Food Feed Content (only when Food tab selected)
+            if (selectedMainCategory == "Food") {
+                // Featured Banners or Skeleton
+                if (isLoadingFeed) {
+                    SkeletonPromoBanner(modifier = Modifier.padding(horizontal = 16.dp))
+                } else {
+                    homeFeed?.featuredBanners?.forEach { banner ->
+                        DynamicPromoBannerView(
+                            banner = banner,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    }
+                }
 
-            // MARK: - Dynamic Sections or Skeletons
-            if (isLoadingFeed) {
-                SkeletonFeedSection(modifier = Modifier.padding(horizontal = 0.dp))
-                SkeletonFeedSection(modifier = Modifier.padding(horizontal = 0.dp))
-            } else {
-                homeFeed?.sections?.forEach { section ->
-                    FeedRestaurantSection(
-                        title = section.heading,
-                        restaurants = section.restaurants,
-                        onRestaurantClick = { onRestaurantClick(it.id) }
-                    )
+                Spacer(modifier = Modifier.height(24.dp))
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                // Dynamic Sections or Skeletons
+                if (isLoadingFeed) {
+                    SkeletonFeedSection(modifier = Modifier.padding(horizontal = 0.dp))
+                    SkeletonFeedSection(modifier = Modifier.padding(horizontal = 0.dp))
+                } else {
+                    homeFeed?.sections?.forEach { section ->
+                        FeedRestaurantSection(
+                            title = section.heading,
+                            restaurants = section.restaurants,
+                            onRestaurantClick = { onRestaurantClick(it.id) }
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
                 }
             }
 

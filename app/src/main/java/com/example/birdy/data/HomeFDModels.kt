@@ -1,6 +1,7 @@
 package com.example.birdy.data
 
 import com.example.birdy.data.Config.API_BASE_URL
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URL
 
@@ -9,6 +10,11 @@ import java.net.URL
 data class FoodCategory(
     val name: String,
     val emoji: String
+)
+
+data class MainCategory(
+    val name: String,
+    val subcategories: List<FoodCategory>
 )
 
 data class DeliveryRestaurant(
@@ -98,32 +104,94 @@ data class FeedRestaurant(
     val thumbnailImage: String get() = images.firstOrNull() ?: ""
 }
 
+// MARK: - Grocery Store Model (matches BK/models/GroceryStore.go)
+
+data class GroceryStore(
+    val id: String,
+    val name: String,
+    val logoUrl: String,
+    val placeholderIcon: String,
+    val color: String,
+    val order: Int,
+    val isActive: Boolean
+)
+
 // MARK: - Static Data (categories — hardcoded for now, will come from backend later)
 
 object HomeFDData {
 
-    val categories = listOf(
-        FoodCategory("Fast Food", "🍟"),
-        FoodCategory("Pizza", "🍕"),
-        FoodCategory("Burgers", "🍔"),
-        FoodCategory("Chicken", "🍗"),
-        FoodCategory("Desserts", "🍰"),
-        FoodCategory("Healthy", "🥗"),
-        FoodCategory("Indian", "🍛"),
-        FoodCategory("Chinese", "🥡"),
-        FoodCategory("Pho", "🍜"),
-        FoodCategory("Bubble Tea", "🧋"),
-        FoodCategory("Mexican", "🌮"),
-        FoodCategory("Korean", "🥘"),
-        FoodCategory("Soup", "🍲"),
-        FoodCategory("Sandwich", "🥪"),
-        FoodCategory("Asian", "🥢"),
-        FoodCategory("Halal", "🍖"),
-        FoodCategory("Thai", "🍛"),
-        FoodCategory("Salad", "🥙"),
-        FoodCategory("Seafood", "🦐"),
-        FoodCategory("Japanese", "🍣")
+    val mainCategories = listOf(
+        MainCategory(name = "Food", subcategories = listOf(
+            FoodCategory("Fast Food", "🍟"),
+            FoodCategory("Pizza", "🍕"),
+            FoodCategory("Burgers", "🍔"),
+            FoodCategory("Chicken", "🍗"),
+            FoodCategory("Desserts", "🍰"),
+            FoodCategory("Healthy", "🥗"),
+            FoodCategory("Indian", "🍛"),
+            FoodCategory("Chinese", "🥡"),
+            FoodCategory("Pho", "🍜"),
+            FoodCategory("Bubble Tea", "🧋"),
+            FoodCategory("Mexican", "🌮"),
+            FoodCategory("Korean", "🥘"),
+            FoodCategory("Soup", "🍲"),
+            FoodCategory("Sandwich", "🥪"),
+            FoodCategory("Asian", "🥢"),
+            FoodCategory("Halal", "🍖"),
+            FoodCategory("Thai", "🍛"),
+            FoodCategory("Salad", "🥙"),
+            FoodCategory("Seafood", "🦐"),
+            FoodCategory("Japanese", "🍣")
+        )),
+        MainCategory(name = "Grocery", subcategories = listOf(
+            FoodCategory("Stores", "🛒"),
+            FoodCategory("Produce", "🥦"),
+            FoodCategory("Meat", "🥩"),
+            FoodCategory("Drinks", "🧃"),
+            FoodCategory("Bakery", "🍞"),
+            FoodCategory("Household", "🧴"),
+            FoodCategory("Snacks", "🍿"),
+            FoodCategory("Dairy", "🧀"),
+            FoodCategory("Frozen", "🧊"),
+            FoodCategory("Organic", "🌿")
+        ))
     )
+
+    // Flat list of all categories (Food only, for backward compatibility)
+    val categories = mainCategories.first { it.name == "Food" }.subcategories
+
+    // MARK: - Load Grocery Stores from API
+
+    /** Blocking network call — must be called from a background thread */
+    fun fetchGroceryStores(): List<GroceryStore> {
+        return try {
+            val url = URL("$API_BASE_URL/grocery-stores")
+            val connection = url.openConnection()
+            connection.connectTimeout = 10_000
+            connection.readTimeout = 15_000
+            val json = connection.getInputStream().bufferedReader().use { it.readText() }
+            parseGroceryStores(json)
+        } catch (e: Exception) {
+            println("❌ [HomeFDData] Failed to fetch /grocery-stores: ${e.message}")
+            emptyList()
+        }
+    }
+
+    private fun parseGroceryStores(json: String): List<GroceryStore> {
+        val array = JSONArray(json)
+        return (0 until array.length()).map { i ->
+            val obj = array.getJSONObject(i)
+            GroceryStore(
+                id = obj.optString("id", ""),
+                name = obj.optString("name", "Store"),
+                logoUrl = obj.optString("logoUrl", ""),
+                placeholderIcon = obj.optString("placeholderIcon", ""),
+                color = obj.optString("color", "#F5F5F5"),
+                order = obj.optInt("order", 0),
+                isActive = obj.optBoolean("isActive", true)
+            )
+        }
+    }
 
     // MARK: - Load Home Feed from API
 

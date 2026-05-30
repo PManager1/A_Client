@@ -56,6 +56,7 @@ import com.example.birdy.data.DeliveryRestaurant
 import com.example.birdy.data.FeaturedBanner
 import com.example.birdy.data.FeedRestaurant
 import com.example.birdy.data.FoodCategory
+import com.example.birdy.data.GroceryStore
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -212,6 +213,54 @@ fun HomeFDCategoryItem(
 }
 
 // ============================================================================
+// MARK: - Main Category Tab Strip (Food / Grocery)
+// Matches iOS: Main Category Strip with underline indicator
+// ============================================================================
+
+@Composable
+fun MainCategoryTabStrip(
+    mainCategories: List<com.example.birdy.data.MainCategory>,
+    selectedMainCategory: String,
+    onMainCategorySelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val orangeColor = Color(red = 0.85f, green = 0.35f, blue = 0.0f)
+
+    LazyRow(
+        modifier = modifier.background(Color.White),
+        horizontalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        itemsIndexed(mainCategories) { _, mainCat ->
+            val isSelected = selectedMainCategory == mainCat.name
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .clickable { onMainCategorySelected(mainCat.name) }
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = mainCat.name,
+                    fontSize = 16.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isSelected) orangeColor else Color.Gray
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                // Underline indicator
+                Box(
+                    modifier = Modifier
+                        .height(3.dp)
+                        .width(if (isSelected) 30.dp else 0.dp)
+                        .background(
+                            if (isSelected) orangeColor else Color.Transparent,
+                            RoundedCornerShape(2.dp)
+                        )
+                )
+            }
+        }
+    }
+}
+
+// ============================================================================
 // MARK: - Category Horizontal List
 // ============================================================================
 
@@ -230,6 +279,82 @@ fun HomeFDCategoryList(
             HomeFDCategoryItem(
                 category = category,
                 onClick = { onCategoryClick(category) }
+            )
+        }
+    }
+}
+
+// ============================================================================
+// MARK: - Grocery Store Card
+// Matches iOS: GroceryStoreCard (110×110 logo + store name)
+// ============================================================================
+
+@Composable
+fun GroceryStoreCard(
+    store: GroceryStore,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.clickable { onClick() }
+    ) {
+        // Logo box (110×110 rounded rect)
+        Box(
+            modifier = Modifier
+                .size(110.dp)
+                .background(Color(0xFFF5F5F5), RoundedCornerShape(16.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (store.logoUrl.isNotEmpty() && store.logoUrl.startsWith("http")) {
+                AsyncImage(
+                    model = store.logoUrl,
+                    contentDescription = store.name,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .size(90.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                )
+            } else {
+                // Placeholder icon
+                Text(
+                    text = store.placeholderIcon.ifEmpty { "🏪" },
+                    fontSize = 36.sp
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Store name
+        Text(
+            text = store.name,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.DarkGray,
+            maxLines = 1
+        )
+    }
+}
+
+// ============================================================================
+// MARK: - Grocery Store Horizontal List
+// ============================================================================
+
+@Composable
+fun GroceryStoreList(
+    stores: List<GroceryStore>,
+    modifier: Modifier = Modifier,
+    onStoreClick: (GroceryStore) -> Unit = {}
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = modifier.padding(horizontal = 16.dp)
+    ) {
+        itemsIndexed(stores) { _, store ->
+            GroceryStoreCard(
+                store = store,
+                onClick = { onStoreClick(store) }
             )
         }
     }
