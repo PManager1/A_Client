@@ -303,7 +303,7 @@ fun GroceryStoreCard(
         Box(
             modifier = Modifier
                 .size(110.dp)
-                .background(Color(0xFFF5F5F5), RoundedCornerShape(16.dp)),
+                .background(Color.White, RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center
         ) {
             if (store.logoUrl.isNotEmpty() && store.logoUrl.startsWith("http")) {

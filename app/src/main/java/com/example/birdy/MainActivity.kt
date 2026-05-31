@@ -104,224 +104,242 @@ fun BirdyApp() {
         return
     }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = Color.White,
-        bottomBar = {
-            BirdyBottomNavBar(
-                selectedIndex = selectedTab,
-                onTabSelected = { index ->
-                    selectedTab = index
-                    showRequestDetail = false
-                    showSearchFood = false
-                    showFoodPlaces = false
-                    showStore = false
-                    selectedCategory = null
-                    showPizzaHome = false
-                    showFastFoodHome = false
-                    selectedStoreName = ""
-                    selectedIsGrocery = false
-                }
-            )
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .consumeWindowInsets(innerPadding)
-        ) {
-            when (selectedTab) {
-                TAB_HOME -> {
-                    when {
-                        showFastFoodHome -> {
-                            FastFoodHomeScreen(
-                                onBack = { showFastFoodHome = false },
-                                onRestaurantClick = { restaurantId ->
-                                    selectedRestaurantId = restaurantId
-                                    selectedStoreName = ""
-                                    showStore = true
-                                }
-                            )
-                        }
-                        showPizzaHome -> {
-                            PizzaHomeScreen(
-                                onBack = { showPizzaHome = false },
-                                onRestaurantClick = { restaurantId ->
-                                    selectedRestaurantId = restaurantId
-                                    selectedStoreName = ""
-                                    showStore = true
-                                }
-                            )
-                        }
-                        showCheckout -> {
-                            CheckoutScreen(
-                                onBack = { showCheckout = false },
-                                onTrackOrder = {
-                                    showCheckout = false
-                                }
-                            )
-                        }
-                        showCart -> {
-                            CartScreen(
-                                onBack = { showCart = false },
-                                onCheckout = {
-                                    showCart = false
-                                    showCheckout = true
-                                }
-                            )
-                        }
-                        showStore -> {
-                            StoreScreen(
-                                onBack = { showStore = false },
-                                onViewCart = { showCart = true },
-                                restaurantId = selectedRestaurantId,
-                                storeName = selectedStoreName,
-                                isGrocery = selectedIsGrocery,
-                                jsonInputStream = if (selectedRestaurantId.isEmpty()) context.assets.open("storejson.json") else null
-                            )
-                        }
-                        else -> {
-                            HomeFDScreen(
-                                onNavigateToSearch = {
-                                    // TODO: Navigate to Search screen
-                                },
-                                onNavigateToCart = {
-                                    showCart = true
-                                },
-                                onRestaurantClick = { restaurantId ->
-                                    selectedRestaurantId = restaurantId
-                                    selectedStoreName = ""
-                                    selectedIsGrocery = false
-                                    showStore = true
-                                },
-                                onGroceryStoreClick = { storeId, storeName ->
-                                    selectedRestaurantId = storeId
-                                    selectedStoreName = storeName
-                                    selectedIsGrocery = true
-                                    showStore = true
-                                },
-                                onCategoryClick = { categoryName ->
-                                    if (categoryName == "Pizza") {
-                                        showPizzaHome = true
-                                    } else if (categoryName == "Fast Food") {
-                                        showFastFoodHome = true
+    // Wrap Scaffold + overlays in a Box so DriverTrackingScreen renders as a
+    // true full-screen overlay — matches iOS .fullScreenCover behavior
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = Color.White,
+            bottomBar = {
+                BirdyBottomNavBar(
+                    selectedIndex = selectedTab,
+                    onTabSelected = { index ->
+                        selectedTab = index
+                        showRequestDetail = false
+                        showSearchFood = false
+                        showFoodPlaces = false
+                        showStore = false
+                        selectedCategory = null
+                        showPizzaHome = false
+                        showFastFoodHome = false
+                        selectedStoreName = ""
+                        selectedIsGrocery = false
+                    }
+                )
+            }
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .consumeWindowInsets(innerPadding)
+            ) {
+                when (selectedTab) {
+                    TAB_HOME -> {
+                        when {
+                            showFastFoodHome -> {
+                                FastFoodHomeScreen(
+                                    onBack = { showFastFoodHome = false },
+                                    onRestaurantClick = { restaurantId ->
+                                        selectedRestaurantId = restaurantId
+                                        selectedStoreName = ""
+                                        showStore = true
                                     }
-                                }
+                                )
+                            }
+
+                            showPizzaHome -> {
+                                PizzaHomeScreen(
+                                    onBack = { showPizzaHome = false },
+                                    onRestaurantClick = { restaurantId ->
+                                        selectedRestaurantId = restaurantId
+                                        selectedStoreName = ""
+                                        showStore = true
+                                    }
+                                )
+                            }
+
+                            showCheckout -> {
+                                CheckoutScreen(
+                                    onBack = { showCheckout = false },
+                                    onTrackOrder = {
+                                        showCheckout = false
+                                    }
+                                )
+                            }
+
+                            showCart -> {
+                                CartScreen(
+                                    onBack = { showCart = false },
+                                    onCheckout = {
+                                        showCart = false
+                                        showCheckout = true
+                                    }
+                                )
+                            }
+
+                            showStore -> {
+                                StoreScreen(
+                                    onBack = { showStore = false },
+                                    onViewCart = { showCart = true },
+                                    restaurantId = selectedRestaurantId,
+                                    storeName = selectedStoreName,
+                                    isGrocery = selectedIsGrocery,
+                                    jsonInputStream = if (selectedRestaurantId.isEmpty()) context.assets.open(
+                                        "storejson.json"
+                                    ) else null
+                                )
+                            }
+
+                            else -> {
+                                HomeFDScreen(
+                                    onNavigateToSearch = {
+                                        // TODO: Navigate to Search screen
+                                    },
+                                    onNavigateToCart = {
+                                        showCart = true
+                                    },
+                                    onRestaurantClick = { restaurantId ->
+                                        selectedRestaurantId = restaurantId
+                                        selectedStoreName = ""
+                                        selectedIsGrocery = false
+                                        showStore = true
+                                    },
+                                    onGroceryStoreClick = { storeId, storeName ->
+                                        selectedRestaurantId = storeId
+                                        selectedStoreName = storeName
+                                        selectedIsGrocery = true
+                                        showStore = true
+                                    },
+                                    onCategoryClick = { categoryName ->
+                                        if (categoryName == "Pizza") {
+                                            showPizzaHome = true
+                                        } else if (categoryName == "Fast Food") {
+                                            showFastFoodHome = true
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    TAB_EXPLORE -> {
+                        when {
+                            showCheckout -> {
+                                CheckoutScreen(
+                                    onBack = { showCheckout = false },
+                                    onTrackOrder = {
+                                        showCheckout = false
+                                        // CartManager.showDriverTracking is already set to true
+                                    }
+                                )
+                            }
+
+                            showCart -> {
+                                CartScreen(
+                                    onBack = { showCart = false },
+                                    onCheckout = {
+                                        showCart = false
+                                        showCheckout = true
+                                    }
+                                )
+                            }
+
+                            showStore -> {
+                                StoreScreen(
+                                    onBack = { showStore = false },
+                                    onViewCart = { showCart = true },
+                                    restaurantId = selectedRestaurantId,
+                                    isGrocery = selectedIsGrocery,
+                                    jsonInputStream = if (selectedRestaurantId.isEmpty()) context.assets.open(
+                                        "storejson.json"
+                                    ) else null
+                                )
+                            }
+
+                            showSearchFood -> {
+                                SearchFoodScreen(
+                                    onBack = { showSearchFood = false },
+                                    onRestaurantClick = { restaurantId ->
+                                        selectedRestaurantId = restaurantId
+                                        showStore = true
+                                    }
+                                )
+                            }
+
+                            showFoodPlaces && selectedCategory != null -> {
+                                NewFoodPlacesScreen(
+                                    category = selectedCategory!!.title,
+                                    onBack = {
+                                        showFoodPlaces = false
+                                        selectedCategory = null
+                                    },
+                                    onSearchClick = { showSearchFood = true },
+                                    onRestaurantClick = { restaurantId ->
+                                        selectedRestaurantId = restaurantId
+                                        showStore = true
+                                    }
+                                )
+                            }
+
+                            else -> {
+                                ExploreScreen(
+                                    onNavigateToSearch = { showSearchFood = true },
+                                    onCategoryClick = { category ->
+                                        selectedCategory = category
+                                        showFoodPlaces = true
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    TAB_INBOX -> {
+                        if (showRequestDetail) {
+                            RequestDetailScreen(
+                                onBack = { showRequestDetail = false }
+                            )
+                        } else {
+                            InboxScreen(
+                                onNavigateToRequestDetail = { showRequestDetail = true }
                             )
                         }
                     }
-                }
 
-                TAB_EXPLORE -> {
-                    when {
-                        showCheckout -> {
-                            CheckoutScreen(
-                                onBack = { showCheckout = false },
-                                onTrackOrder = {
-                                    showCheckout = false
-                                    // CartManager.showDriverTracking is already set to true
-                                }
-                            )
-                        }
-                        showCart -> {
-                            CartScreen(
-                                onBack = { showCart = false },
-                                onCheckout = {
-                                    showCart = false
-                                    showCheckout = true
-                                }
-                            )
-                        }
-                        showStore -> {
-                            StoreScreen(
-                                onBack = { showStore = false },
-                                onViewCart = { showCart = true },
-                                restaurantId = selectedRestaurantId,
-                                isGrocery = selectedIsGrocery,
-                                jsonInputStream = if (selectedRestaurantId.isEmpty()) context.assets.open("storejson.json") else null
-                            )
-                        }
-                        showSearchFood -> {
-                            SearchFoodScreen(
-                                onBack = { showSearchFood = false },
-                                onRestaurantClick = { restaurantId ->
-                                    selectedRestaurantId = restaurantId
-                                    showStore = true
-                                }
-                            )
-                        }
-                        showFoodPlaces && selectedCategory != null -> {
-                            NewFoodPlacesScreen(
-                                category = selectedCategory!!.title,
-                                onBack = {
-                                    showFoodPlaces = false
-                                    selectedCategory = null
-                                },
-                                onSearchClick = { showSearchFood = true },
-                                onRestaurantClick = { restaurantId ->
-                                    selectedRestaurantId = restaurantId
-                                    showStore = true
-                                }
-                            )
-                        }
-                        else -> {
-                            ExploreScreen(
-                                onNavigateToSearch = { showSearchFood = true },
-                                onCategoryClick = { category ->
-                                    selectedCategory = category
-                                    showFoodPlaces = true
-                                }
-                            )
-                        }
+                    TAB_ACCOUNT -> AccountScreen()
+                }
+            }
+
+            // Full-screen driver tracking overlay — matches iOS .fullScreenCover for DriverTracking
+            if (CartManager.showDriverTracking) {
+                DriverTrackingScreen(
+                    onBack = {
+                        CartManager.showDriverTracking = false
                     }
-                }
+                )
+            }
 
-                TAB_INBOX -> {
-                    if (showRequestDetail) {
-                        RequestDetailScreen(
-                            onBack = { showRequestDetail = false }
-                        )
-                    } else {
-                        InboxScreen(
-                            onNavigateToRequestDetail = { showRequestDetail = true }
-                        )
+            // Full-screen order detail overlay — matches iOS .fullScreenCover for OrderDetail
+            if (CartManager.showOrderDetail) {
+                OrderDetailScreen(
+                    onBack = {
+                        CartManager.showOrderDetail = false
                     }
-                }
-
-                TAB_ACCOUNT -> AccountScreen()
+                )
             }
         }
-
-        // Full-screen driver tracking overlay — matches iOS .fullScreenCover for DriverTracking
-        if (CartManager.showDriverTracking) {
-            DriverTrackingScreen(
-                onBack = {
-                    CartManager.showDriverTracking = false
-                }
-            )
-        }
-
-        // Full-screen order detail overlay — matches iOS .fullScreenCover for OrderDetail
-        if (CartManager.showOrderDetail) {
-            OrderDetailScreen(
-                onBack = {
-                    CartManager.showOrderDetail = false
-                }
-            )
-        }
     }
-}
 
-@Preview(showBackground = true)
-@Composable
-fun BirdyAppPreview() {
-    BirdyTheme {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = Color.White
-        ) {
-            BirdyApp()
+    @Preview(showBackground = true)
+    @Composable
+    fun BirdyAppPreview() {
+        BirdyTheme {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = Color.White
+            ) {
+                BirdyApp()
+            }
         }
     }
 }

@@ -57,6 +57,8 @@ import coil.compose.AsyncImage
 import com.example.birdy.data.AuthManager
 import com.example.birdy.data.CartManager
 import com.example.birdy.data.Config
+import com.example.birdy.ui.fooddelivery.Address
+import com.example.birdy.ui.fooddelivery.SelectAddressSheet
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -337,13 +339,17 @@ fun CheckoutScreen(
                         onLeaveAtDoorChanged = { leaveAtDoor = it }
                     )
 
-                    // Address selection bottom sheet
+                    // Address selection bottom sheet (uses proper SelectAddressSheet from fooddelivery/)
                     if (showSelectAddress) {
                         SelectAddressSheet(
-                            addresses = addresses,
-                            selectedAddress = selectedAddress,
-                            onAddressSelected = {
-                                selectedAddress = it
+                            currentAddressId = selectedAddress.id,
+                            onAddressSelected = { address ->
+                                selectedAddress = DeliveryAddress(
+                                    id = address.id,
+                                    title = if (address.isDefault) "Home" else address.street,
+                                    fullAddress = "${address.street}, ${address.cityStateZip}",
+                                    instructions = address.gateCode ?: ""
+                                )
                                 showSelectAddress = false
                             },
                             onDismiss = { showSelectAddress = false }
@@ -856,120 +862,3 @@ private fun OrderSuccessOverlay() {
     }
 }
 
-// MARK: - Select Address Sheet (matches iOS SelectAddress sheet)
-
-@Composable
-private fun SelectAddressSheet(
-    addresses: List<DeliveryAddress>,
-    selectedAddress: DeliveryAddress,
-    onAddressSelected: (DeliveryAddress) -> Unit,
-    onDismiss: () -> Unit
-) {
-    // Semi-transparent overlay
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.5f))
-            .clickable { onDismiss() }
-    ) {
-        // Sheet content
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(Color.White, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-                .padding(20.dp)
-        ) {
-            // Handle bar
-            Box(
-                modifier = Modifier
-                    .width(40.dp)
-                    .height(4.dp)
-                    .background(Color.Gray.copy(alpha = 0.3f), RoundedCornerShape(2.dp))
-                    .align(Alignment.CenterHorizontally)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Select Delivery Address",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            addresses.forEach { address ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            if (selectedAddress.id == address.id) Color(0xFFFCEEE6) else Color.Transparent,
-                            RoundedCornerShape(12.dp)
-                        )
-                        .clickable { onAddressSelected(address) }
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = if (selectedAddress.id == address.id) Color(0xFFCC5500) else Color.Gray,
-                        modifier = Modifier.size(24.dp)
-                    )
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = address.title,
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
-                        Text(
-                            text = address.fullAddress,
-                            fontSize = 15.sp,
-                            color = Color.Gray
-                        )
-                        if (address.instructions.isNotEmpty()) {
-                            Text(
-                                text = "Note: ${address.instructions}",
-                                fontSize = 12.sp,
-                                color = Color(0xFF2196F3)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = if (selectedAddress.id == address.id) Color(0xFFCC5500) else Color.Gray.copy(alpha = 0.3f),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            // Add new address button
-            Text(
-                text = "+ Add new address",
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF2196F3),
-                modifier = Modifier
-                    .clickable { /* Future: Add address flow */ }
-                    .padding(vertical = 8.dp)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-    }
-}
