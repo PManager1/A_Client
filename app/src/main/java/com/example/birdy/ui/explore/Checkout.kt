@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.LocationOn
@@ -119,6 +120,7 @@ fun CheckoutScreen(
     val scope = rememberCoroutineScope()
 
     var selectedAddress by remember { mutableStateOf(addresses.first()) }
+    var showSelectAddress by remember { mutableStateOf(false) }
     var selectedPayment by remember { mutableStateOf(paymentMethods.first()) }
     var tipAmount by remember { mutableStateOf(4.0) }
     var leaveAtDoor by remember { mutableStateOf(true) }
@@ -330,12 +332,24 @@ fun CheckoutScreen(
 
                     // Delivery Address section
                     DeliveryAddressSection(
-                        addresses = addresses,
                         selectedAddress = selectedAddress,
-                        onAddressSelected = { selectedAddress = it },
+                        onAddressTap = { showSelectAddress = true },
                         leaveAtDoor = leaveAtDoor,
                         onLeaveAtDoorChanged = { leaveAtDoor = it }
                     )
+
+                    // Address selection bottom sheet
+                    if (showSelectAddress) {
+                        SelectAddressSheet(
+                            addresses = addresses,
+                            selectedAddress = selectedAddress,
+                            onAddressSelected = {
+                                selectedAddress = it
+                                showSelectAddress = false
+                            },
+                            onDismiss = { showSelectAddress = false }
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(20.dp))
 
@@ -425,13 +439,12 @@ fun CheckoutScreen(
     }
 }
 
-// MARK: - Delivery Address Section (matches iOS deliverySection)
+// MARK: - Delivery Address Section (matches iOS deliverySection — shows only selected address)
 
 @Composable
 private fun DeliveryAddressSection(
-    addresses: List<DeliveryAddress>,
     selectedAddress: DeliveryAddress,
-    onAddressSelected: (DeliveryAddress) -> Unit,
+    onAddressTap: () -> Unit,
     leaveAtDoor: Boolean,
     onLeaveAtDoorChanged: (Boolean) -> Unit
 ) {
@@ -449,74 +462,57 @@ private fun DeliveryAddressSection(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        addresses.forEach { address ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White, RoundedCornerShape(16.dp))
-                    .clickable { onAddressSelected(address) }
-                    .padding(16.dp),
-                verticalAlignment = Alignment.Top
+        // Show only the selected address card (matches iOS)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White, RoundedCornerShape(16.dp))
+                .clickable { onAddressTap() }
+                .padding(16.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(
+                imageVector = Icons.Default.LocationOn,
+                contentDescription = null,
+                tint = Color(0xFFCC5500),
+                modifier = Modifier.size(24.dp)
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // Address icon
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    contentDescription = null,
-                    tint = Color(0xFFCC5500),
-                    modifier = Modifier.size(24.dp)
+                Text(
+                    text = selectedAddress.title,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
                 )
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                // Address info
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
+                Text(
+                    text = selectedAddress.fullAddress,
+                    fontSize = 15.sp,
+                    color = Color.Gray
+                )
+                if (selectedAddress.instructions.isNotEmpty()) {
                     Text(
-                        text = address.title,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                        text = "Note: ${selectedAddress.instructions}",
+                        fontSize = 12.sp,
+                        color = Color(0xFF2196F3)
                     )
-                    Text(
-                        text = address.fullAddress,
-                        fontSize = 15.sp,
-                        color = Color.Gray
-                    )
-                    if (address.instructions.isNotEmpty()) {
-                        Text(
-                            text = "Note: ${address.instructions}",
-                            fontSize = 12.sp,
-                            color = Color(0xFF2196F3) // Blue
-                        )
-                    }
                 }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Checkmark
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = if (selectedAddress.id == address.id) Color(0xFFCC5500) else Color.Gray.copy(alpha = 0.4f),
-                    modifier = Modifier.size(24.dp)
-                )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-        }
+            Spacer(modifier = Modifier.width(8.dp))
 
-        // Add new address button
-        Text(
-            text = "Add new address",
-            fontSize = 17.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF2196F3),
-            modifier = Modifier
-                .clickable { /* Future: Add address flow */ }
-                .padding(vertical = 4.dp)
-        )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "Change",
+                tint = Color.Gray,
+                modifier = Modifier.size(24.dp)
+            )
+        }
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -856,6 +852,124 @@ private fun OrderSuccessOverlay() {
                     .size(32.dp),
                 strokeWidth = 3.dp
             )
+        }
+    }
+}
+
+// MARK: - Select Address Sheet (matches iOS SelectAddress sheet)
+
+@Composable
+private fun SelectAddressSheet(
+    addresses: List<DeliveryAddress>,
+    selectedAddress: DeliveryAddress,
+    onAddressSelected: (DeliveryAddress) -> Unit,
+    onDismiss: () -> Unit
+) {
+    // Semi-transparent overlay
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable { onDismiss() }
+    ) {
+        // Sheet content
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .background(Color.White, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                .padding(20.dp)
+        ) {
+            // Handle bar
+            Box(
+                modifier = Modifier
+                    .width(40.dp)
+                    .height(4.dp)
+                    .background(Color.Gray.copy(alpha = 0.3f), RoundedCornerShape(2.dp))
+                    .align(Alignment.CenterHorizontally)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Select Delivery Address",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            addresses.forEach { address ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            if (selectedAddress.id == address.id) Color(0xFFFCEEE6) else Color.Transparent,
+                            RoundedCornerShape(12.dp)
+                        )
+                        .clickable { onAddressSelected(address) }
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = null,
+                        tint = if (selectedAddress.id == address.id) Color(0xFFCC5500) else Color.Gray,
+                        modifier = Modifier.size(24.dp)
+                    )
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = address.title,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        Text(
+                            text = address.fullAddress,
+                            fontSize = 15.sp,
+                            color = Color.Gray
+                        )
+                        if (address.instructions.isNotEmpty()) {
+                            Text(
+                                text = "Note: ${address.instructions}",
+                                fontSize = 12.sp,
+                                color = Color(0xFF2196F3)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = if (selectedAddress.id == address.id) Color(0xFFCC5500) else Color.Gray.copy(alpha = 0.3f),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            // Add new address button
+            Text(
+                text = "+ Add new address",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF2196F3),
+                modifier = Modifier
+                    .clickable { /* Future: Add address flow */ }
+                    .padding(vertical = 8.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

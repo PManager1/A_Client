@@ -302,8 +302,7 @@ suspend fun fetchStoreDetail(restaurantId: String, storeName: String = ""): Stor
         try {
             val url = "${Config.API_BASE_URL}/restaurants/$restaurantId"
             val jsonStr = java.net.URL(url).readText()
-            val result = parseStoreJson(JSONObject(jsonStr))
-            if (result != null) return@withContext result
+            return@withContext parseStoreJson(JSONObject(jsonStr))
         } catch (_: Exception) { }
 
         // 3. Try grocery store API — fetch store info + items separately (matches iOS fetchGroceryStore)
@@ -324,17 +323,34 @@ suspend fun fetchStoreDetail(restaurantId: String, storeName: String = ""): Stor
             // Items may be in {"items": [...]} or a bare array
             val itemsArr = if (itemsRoot.has("items")) itemsRoot.getJSONArray("items") else JSONArray(itemsJsonStr)
 
-            val menuItems = (0 until itemsArr.length()).map { i ->
+            // Build menu items and preserve category info for grouping
+            data class ItemWithCategory(val menuItem: StoreMenuItem, val category: String)
+
+            val itemsWithCats = (0 until itemsArr.length()).map { i ->
                 val item = itemsArr.getJSONObject(i)
-                StoreMenuItem(
-                    id = item.optString("id", "g-$i"),
-                    name = item.optString("name", "Item"),
-                    description = item.optString("description", ""),
-                    price = item.optDouble("price", 0.0),
-                    image_url = item.optString("imageUrl", ""),
-                    is_available = true,
-                    modifier_groups = emptyList()
+                val cat = item.optString("category", "")
+                ItemWithCategory(
+                    menuItem = StoreMenuItem(
+                        id = item.optString("id", "g-$i"),
+                        name = item.optString("name", "Item"),
+                        description = item.optString("description", ""),
+                        price = item.optDouble("price", 0.0),
+                        image_url = item.optString("imageUrl", ""),
+                        is_available = true,
+                        modifier_groups = emptyList()
+                    ),
+                    category = cat
                 )
+            }
+
+            // Group items by category (dynamic — categories come from the store's items) — matches iOS
+            val categoryMap = linkedMapOf<String, MutableList<StoreMenuItem>>()
+            for (iwc in itemsWithCats) {
+                val key = if (iwc.category.isEmpty()) "Other" else iwc.category
+                categoryMap.getOrPut(key) { mutableListOf() }.add(iwc.menuItem)
+            }
+            val menuCategories = categoryMap.map { (cat, items) ->
+                StoreMenuCategory(category_name = cat, items = items)
             }
 
             val groceryStoreData = StoreData(
@@ -358,11 +374,9 @@ suspend fun fetchStoreDetail(restaurantId: String, storeName: String = ""): Stor
                     latitude = 0.0,
                     longitude = 0.0
                 ),
-                menu = if (menuItems.isNotEmpty()) listOf(
-                    StoreMenuCategory(category_name = "All Items", items = menuItems)
-                ) else emptyList()
+                menu = menuCategories
             )
-            println("✅ [StoreApi] Loaded grocery store: $gStoreName with ${menuItems.size} items")
+            println("✅ [StoreApi] Loaded grocery store: $gStoreName with ${itemsWithCats.size} items in ${menuCategories.size} categories")
             return@withContext groceryStoreData
         } catch (e: Exception) {
             println("⚠️ [StoreApi] Grocery store fetch failed: ${e.message}")
