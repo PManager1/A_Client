@@ -126,6 +126,7 @@ fun CheckoutScreen(
     var isPlacingOrder by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var showTipPage by remember { mutableStateOf(false) }
+    var selectedMode by remember { mutableStateOf("Delivery") }
 
     val totalWithTip = CartManager.total + tipAmount
 
@@ -294,6 +295,39 @@ fun CheckoutScreen(
                 ) {
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // Delivery / Pickup Toggle
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .background(Color.Gray.copy(alpha = 0.1f), RoundedCornerShape(50))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        listOf("Delivery", "Pickup").forEach { mode ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .background(
+                                        if (selectedMode == mode) Color.Black else Color.Transparent,
+                                        RoundedCornerShape(50)
+                                    )
+                                    .clickable { selectedMode = mode }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = mode,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (selectedMode == mode) Color.White else Color.Gray
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     // Delivery Address section
                     DeliveryAddressSection(
                         addresses = addresses,
@@ -319,19 +353,19 @@ fun CheckoutScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
+                    // Summary section
+                    SummarySection(
+                        tipAmount = tipAmount,
+                        totalWithTip = totalWithTip
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
                     // Tip section
                     TipSection(
                         tipAmount = tipAmount,
                         onTipSelected = { tipAmount = it },
                         onShowTipPage = { showTipPage = true }
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // Summary section
-                    SummarySection(
-                        tipAmount = tipAmount,
-                        totalWithTip = totalWithTip
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
@@ -408,7 +442,7 @@ private fun DeliveryAddressSection(
     ) {
         Text(
             text = "Delivery Address",
-            fontSize = 22.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black
         )
@@ -525,7 +559,7 @@ private fun PaymentMethodSection(
     ) {
         Text(
             text = "Payment Method",
-            fontSize = 22.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black
         )
@@ -595,7 +629,7 @@ private fun OrderItemsSection() {
     ) {
         Text(
             text = "Your Order",
-            fontSize = 22.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black
         )
@@ -660,7 +694,7 @@ private fun TipSection(
     ) {
         Text(
             text = "Tip Your Driver",
-            fontSize = 22.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black
         )
@@ -720,7 +754,7 @@ private fun SummarySection(
     ) {
         Text(
             text = "Order Summary",
-            fontSize = 22.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black
         )

@@ -336,14 +336,24 @@ fun StoreScreen(
                     .fillMaxWidth()
                     .height(240.dp)
             ) {
-                AsyncImage(
-                    model = data.brand_info.banner_image_url,
-                    contentDescription = "Banner",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(240.dp)
-                )
+                if (data.brand_info.banner_image_url.isEmpty()) {
+                    // Grey placeholder when no banner (matches iOS)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(240.dp)
+                            .background(Color.Gray.copy(alpha = 0.15f))
+                    )
+                } else {
+                    AsyncImage(
+                        model = data.brand_info.banner_image_url,
+                        contentDescription = "Banner",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(240.dp)
+                    )
+                }
 
                 Box(
                     modifier = Modifier

@@ -154,6 +154,14 @@ fun BirdyApp() {
                                 }
                             )
                         }
+                        showCheckout -> {
+                            CheckoutScreen(
+                                onBack = { showCheckout = false },
+                                onTrackOrder = {
+                                    showCheckout = false
+                                }
+                            )
+                        }
                         showCart -> {
                             CartScreen(
                                 onBack = { showCart = false },

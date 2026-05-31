@@ -314,6 +314,7 @@ suspend fun fetchStoreDetail(restaurantId: String, storeName: String = ""): Stor
 
             val gStoreName = storeJson.optString("name", storeName.ifEmpty { "Grocery Store" })
             val gLogoUrl = storeJson.optString("logoUrl", "")
+            val gBannerUrl = storeJson.optString("bannerUrl", "")
 
             // Fetch items from /grocery-stores/{id}/items
             val itemsUrl = "${Config.API_BASE_URL}/grocery-stores/$restaurantId/items"
@@ -341,7 +342,7 @@ suspend fun fetchStoreDetail(restaurantId: String, storeName: String = ""): Stor
                 brand_info = StoreBrandInfo(
                     name = gStoreName,
                     logo_url = gLogoUrl,
-                    banner_image_url = "",
+                    banner_image_url = gBannerUrl,
                     rating = 4.5,
                     review_count = "Grocery",
                     cuisine = "Grocery",
@@ -368,9 +369,10 @@ suspend fun fetchStoreDetail(restaurantId: String, storeName: String = ""): Stor
         }
 
         // 4. Mock fallback — try mock data again
-        if (mockJson != null) {
+        val mockFallback = mockStoreJSON[restaurantId]
+        if (mockFallback != null) {
             try {
-                return@withContext parseStoreJson(JSONObject(mockJson))
+                return@withContext parseStoreJson(JSONObject(mockFallback))
             } catch (_: Exception) { }
         }
 
