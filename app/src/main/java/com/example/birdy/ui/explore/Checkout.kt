@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.LocationOn
@@ -58,6 +59,7 @@ import com.example.birdy.data.AuthManager
 import com.example.birdy.data.CartManager
 import com.example.birdy.data.Config
 import com.example.birdy.ui.fooddelivery.Address
+import com.example.birdy.ui.account.Wallet
 import com.example.birdy.ui.fooddelivery.SelectAddressSheet
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
@@ -129,6 +131,7 @@ fun CheckoutScreen(
     var isPlacingOrder by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var showTipPage by remember { mutableStateOf(false) }
+    var showWallet by remember { mutableStateOf(false) }
     var selectedMode by remember { mutableStateOf("Delivery") }
 
     val totalWithTip = CartManager.total + tipAmount
@@ -366,8 +369,27 @@ fun CheckoutScreen(
                     PaymentMethodSection(
                         paymentMethods = paymentMethods,
                         selectedPayment = selectedPayment,
-                        onPaymentSelected = { selectedPayment = it }
+                        onPaymentSelected = { selectedPayment = it },
+                        onAddPayment = { showWallet = true }
                     )
+
+                    // Wallet bottom sheet (full height)
+                    if (showWallet) {
+                        val walletSheetState = androidx.compose.material3.rememberModalBottomSheetState(
+                            skipPartiallyExpanded = true
+                        )
+                        androidx.compose.material3.ModalBottomSheet(
+                            onDismissRequest = { showWallet = false },
+                            sheetState = walletSheetState,
+                            containerColor = Color.White
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Wallet(onBack = { showWallet = false })
+                            }
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(20.dp))
 
@@ -556,7 +578,8 @@ private fun DeliveryAddressSection(
 private fun PaymentMethodSection(
     paymentMethods: List<PaymentMethod>,
     selectedPayment: PaymentMethod,
-    onPaymentSelected: (PaymentMethod) -> Unit
+    onPaymentSelected: (PaymentMethod) -> Unit,
+    onAddPayment: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -572,52 +595,81 @@ private fun PaymentMethodSection(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        paymentMethods.forEach { method ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White, RoundedCornerShape(16.dp))
-                    .clickable { onPaymentSelected(method) }
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Brand icon
-                Icon(
-                    imageVector = Icons.Default.CreditCard,
-                    contentDescription = null,
-                    tint = Color.Black,
-                    modifier = Modifier.size(24.dp)
+        // Show only the default/selected payment method
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White, RoundedCornerShape(16.dp))
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.CreditCard,
+                contentDescription = null,
+                tint = Color.Black,
+                modifier = Modifier.size(24.dp)
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = selectedPayment.type,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
                 )
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                // Payment info
-                Column(modifier = Modifier.weight(1f)) {
+                if (selectedPayment.last4 != null) {
                     Text(
-                        text = method.type,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                        text = "•••• ${selectedPayment.last4}",
+                        fontSize = 15.sp,
+                        color = Color.Gray
                     )
-                    if (method.last4 != null) {
-                        Text(
-                            text = "•••• ${method.last4}",
-                            fontSize = 15.sp,
-                            color = Color.Gray
-                        )
-                    }
                 }
-
-                // Checkmark
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = if (selectedPayment.id == method.id) Color(0xFFCC5500) else Color.Gray.copy(alpha = 0.4f),
-                    modifier = Modifier.size(24.dp)
-                )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = Color(0xFFCC5500),
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // "Add another payment" → navigates to Wallet
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFFF5F5F5), RoundedCornerShape(16.dp))
+                .clickable { onAddPayment() }
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.AddCircle,
+                contentDescription = null,
+                tint = Color(0xFFCC5500),
+                modifier = Modifier.size(22.dp)
+            )
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            Text(
+                text = "Add another payment",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFFCC5500),
+                modifier = Modifier.weight(1f)
+            )
+
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = Color.Gray,
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }

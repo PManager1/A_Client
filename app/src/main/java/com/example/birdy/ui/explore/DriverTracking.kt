@@ -74,6 +74,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.birdy.BuildConfig
 import com.example.birdy.R
 import com.example.birdy.data.CartManager
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -451,7 +452,23 @@ fun DriverPositionGoogleMap(
     onUserLocationUpdated: (LatLng) -> Unit
 ) {
     val context = LocalContext.current
-    var mapInitError by remember { mutableStateOf(false) }
+
+    // Early check: validate API key BEFORE creating MapView to prevent
+    // Google Play Services from triggering a system dialog that minimizes the app
+    val apiKeyValid = remember {
+        try {
+            val appInfo = context.packageManager.getApplicationInfo(
+                context.packageName,
+                android.content.pm.PackageManager.GET_META_DATA
+            )
+            val key = appInfo.metaData.getString("com.google.android.geo.API_KEY") ?: ""
+            key.isNotEmpty() && key != "YOUR_GOOGLE_MAPS_API_KEY_HERE"
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    var mapInitError by remember { mutableStateOf(!apiKeyValid) }
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
     if (mapInitError) {
@@ -615,13 +632,10 @@ private suspend fun fetchRouteAndDrawLine(
     lastRouteFetchTimeMs = now
 
     try {
-        // Read API key from manifest
-        val apiKey = try {
-            val applicationInfo = context.packageManager.getApplicationInfo(context.packageName, android.content.pm.PackageManager.GET_META_DATA)
-            applicationInfo.metaData.getString("com.google.android.geo.API_KEY") ?: ""
-        } catch (e: Exception) { "" }
+        // Read API key from BuildConfig (injected from local.properties at build time)
+        val apiKey = BuildConfig.GOOGLE_MAPS_API_KEY
 
-        if (apiKey.isEmpty() || apiKey == "YOUR_GOOGLE_MAPS_API_KEY_HERE") {
+        if (apiKey.isEmpty()) {
             Log.w("ShowDriverPosition", "⚠️ No Google Maps API key — drawing straight line")
             withContext(Dispatchers.Main) {
                 drawStraightLine(map, driver, user, onPolyline)

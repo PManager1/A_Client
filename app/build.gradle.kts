@@ -12,6 +12,7 @@ val localProperties = Properties().apply {
     if (file.exists()) load(file.inputStream())
 }
 val mapboxToken: String = localProperties.getProperty("MAPBOX_ACCESS_TOKEN", "")
+val googleMapsKey: String = localProperties.getProperty("GOOGLE_MAPS_API_KEY", "")
 
 android {
     namespace = "com.example.birdy"
@@ -52,6 +53,10 @@ android {
         // Inject Mapbox token into BuildConfig and AndroidManifest
         buildConfigField("String", "MAPBOX_ACCESS_TOKEN", "\"$mapboxToken\"")
         manifestPlaceholders["MAPBOX_ACCESS_TOKEN"] = mapboxToken
+
+        // Inject Google Maps API key into BuildConfig and AndroidManifest (same pattern)
+        buildConfigField("String", "GOOGLE_MAPS_API_KEY", "\"$googleMapsKey\"")
+        manifestPlaceholders["GOOGLE_MAPS_API_KEY"] = googleMapsKey
     }
 }
 
