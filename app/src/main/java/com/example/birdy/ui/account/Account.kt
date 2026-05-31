@@ -157,6 +157,7 @@ fun AccountScreen(
             }
             val isLoggedIn = remember(refreshKey) { AuthManager.isLoggedIn(context) }
             val profileImageUrl = remember(refreshKey) { AuthManager.getProfileImageUrl() }
+            val userRating = remember(refreshKey) { AuthManager.getUserRating() }
 
             Column(
                 modifier = modifier
@@ -172,7 +173,7 @@ fun AccountScreen(
                 if (isProfileLoaded) {
                     ProfileCard(
                         name = displayName,
-                        rating = 4.95f,
+                        rating = userRating,
                         isLoggedIn = isLoggedIn,
                         profileImageUrl = profileImageUrl,
                         onClick = {

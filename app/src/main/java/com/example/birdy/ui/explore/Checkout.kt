@@ -111,8 +111,7 @@ fun CheckoutScreen(
     val paymentMethods = remember {
         listOf(
             PaymentMethod(id = "gpay", type = "Google Pay", last4 = null, brandIcon = "gpay"),
-            PaymentMethod(id = "visa", type = "Visa", last4 = "4242", brandIcon = "visa"),
-            PaymentMethod(id = "mc", type = "Mastercard", last4 = "8888", brandIcon = "mc")
+            PaymentMethod(id = "visa", type = "Visa", last4 = "4242", brandIcon = "visa")
         )
     }
 
@@ -504,14 +503,15 @@ private fun DeliveryAddressSection(
                 }
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = "Change",
-                tint = Color.Gray,
-                modifier = Modifier.size(24.dp)
-            )
+            // Blue "Change" button — matches iOS Button("Change").foregroundColor(.blue)
+            TextButton(onClick = onAddressTap) {
+                Text(
+                    text = "Change",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF007AFF) // iOS system blue
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(12.dp))

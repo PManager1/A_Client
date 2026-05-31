@@ -112,6 +112,19 @@ object AuthManager {
         return prefs.getString(KEY_PROFILE_IMAGE_URL, "") ?: ""
     }
 
+    // ── User Rating ───────────────────────────────────────
+    private const val KEY_USER_RATING = "userRating"
+
+    fun setUserRating(rating: Float) {
+        if (!::prefs.isInitialized) return
+        prefs.edit().putFloat(KEY_USER_RATING, rating).apply()
+    }
+
+    fun getUserRating(): Float {
+        if (!::prefs.isInitialized) return 5.0f
+        return prefs.getFloat(KEY_USER_RATING, 5.0f)
+    }
+
     /** Clear everything on sign-out / account deletion. */
     fun clearAll() {
         if (!::prefs.isInitialized) return

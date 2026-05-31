@@ -1,10 +1,6 @@
 package com.example.birdy.ui.account
 
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,20 +19,22 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -71,15 +70,16 @@ private val OrangeSec6 = Color(0xFFE5E5EA)
 private val OrangeSec7 = Color(0xFF1C1C1E)
 
 /**
- * ProfileScreen — mirrors iOS Profile.swift
+ * ProfileScreen — mirrors iOS ProfileN.swift
  *
  * Edit Profile page with:
- *  - Profile image (tap to change)
- *  - Basic Information (firstName, lastName, email, phone)
+ *  - Profile image (tap to change URL)
+ *  - Basic Information (Professional Name, Service Type, Profile Image URL)
  *  - Pricing (flatFee, hourlyRate)
- *  - About (multi-line, 500 char limit)
- *  - Badges (display only for now)
+ *  - About (multi-line, no char limit)
+ *  - Badges (comma-separated text field)
  *  - Save button → PATCH /meProfile
+ *  - Change tracking (only sends modified fields)
  *
  * Fetches profile data on load via GET /me
  */
@@ -90,16 +90,23 @@ fun ProfileScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // State for text fields
-    var firstName by remember { mutableStateOf("") }
-    var lastName by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var phoneNumber by remember { mutableStateOf("") }
+    // Original values for change tracking (mirrors iOS nameChanged, serviceChanged, etc.)
+    var originalName by remember { mutableStateOf("") }
+    var originalService by remember { mutableStateOf("") }
+    var originalProfileImageUrl by remember { mutableStateOf("") }
+    var originalFlatFee by remember { mutableStateOf("") }
+    var originalHourlyRate by remember { mutableStateOf("") }
+    var originalAbout by remember { mutableStateOf("") }
+    var originalBadges by remember { mutableStateOf("") }
+
+    // Editable states (mirrors iOS @State private vars)
+    var name by remember { mutableStateOf("") }
+    var service by remember { mutableStateOf("") }
+    var profileImageUrl by remember { mutableStateOf("") }
     var flatFee by remember { mutableStateOf("") }
     var hourlyRate by remember { mutableStateOf("") }
     var about by remember { mutableStateOf("") }
-    var profileImageUrl by remember { mutableStateOf("") }
-    var selectedBadges by remember { mutableStateOf<List<String>>(emptyList()) }
+    var badgeNames by remember { mutableStateOf("") }
 
     // UI state
     var isLoading by remember { mutableStateOf(true) }
@@ -108,16 +115,7 @@ fun ProfileScreen(
     var showErrorDialog by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
 
-    // Image picker
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        selectedImageUri = uri
-        // TODO: Upload image to GCS and update profileImageUrl
-    }
-
-    // Fetch profile on first composition
+    // Fetch profile on first composition (mirrors iOS init from profile object)
     suspend fun fetchProfile() {
         withContext(Dispatchers.IO) {
             try {
@@ -150,40 +148,55 @@ fun ProfileScreen(
                 if (statusCode == 200) {
                     val json = JSONObject(responseStr)
 
-                    // Extract user fields
-                    if (json.has("user")) {
-                        val user = json.getJSONObject("user")
-                        withContext(Dispatchers.Main) {
-                            firstName = user.optString("firstName", "")
-                            lastName = user.optString("lastName", "")
-                            email = user.optString("email", "")
-                            phoneNumber = user.optString("phoneNumber", "")
-                        }
-                    }
-
-                    // Extract serviceProfile → providerDetails
+                    // Extract serviceProfile → providerDetails (mirrors iOS ProfessionalProfile)
                     if (json.has("serviceProfile")) {
                         val serviceProfile = json.getJSONObject("serviceProfile")
                         if (serviceProfile.has("providerDetails")) {
                             val details = serviceProfile.getJSONObject("providerDetails")
                             withContext(Dispatchers.Main) {
+                                // Build name from user's first + last
+                                val firstName = json.optJSONObject("user")?.optString("firstName", "") ?: ""
+                                val lastName = json.optJSONObject("user")?.optString("lastName", "") ?: ""
+                                val fullName = "$firstName $lastName".trim()
+
+                                name = details.optString("name", fullName)
+                                service = details.optString("service", "")
+                                profileImageUrl = details.optString("profileImage", "")
                                 flatFee = details.optString("flatFee", "")
                                 hourlyRate = details.optString("hourlyRate", "")
                                 about = details.optString("about", "")
-                                profileImageUrl = details.optString("profileImage", "")
 
-                                // Persist to AuthManager so Account page can display it
+                                // Save rating from providerDetails (matches iOS profile.rating)
+                                val ratingValue = details.optDouble("rating", 5.0).toFloat()
+                                AuthManager.setUserRating(ratingValue)
+
+                                // Persist profile image to AuthManager
                                 AuthManager.setProfileImageUrl(profileImageUrl)
 
-                                // Load badges
+                                // Load badges as comma-separated string (matches iOS badgeNames)
                                 val badgesArray = details.optJSONArray("badges")
                                 if (badgesArray != null) {
                                     val badges = mutableListOf<String>()
                                     for (i in 0 until badgesArray.length()) {
-                                        badges.add(badgesArray.getString(i))
+                                        // Handle badges that are either strings or objects with "name" field
+                                        val badge = badgesArray.get(i)
+                                        if (badge is String) {
+                                            badges.add(badge)
+                                        } else if (badge is JSONObject) {
+                                            badges.add(badge.optString("name", ""))
+                                        }
                                     }
-                                    selectedBadges = badges
+                                    badgeNames = badges.joinToString(", ")
                                 }
+
+                                // Store originals for change tracking
+                                originalName = name
+                                originalService = service
+                                originalProfileImageUrl = profileImageUrl
+                                originalFlatFee = flatFee
+                                originalHourlyRate = hourlyRate
+                                originalAbout = about
+                                originalBadges = badgeNames
                             }
                         }
                     }
@@ -206,7 +219,8 @@ fun ProfileScreen(
         }
     }
 
-    // Save profile via PATCH /meProfile
+    // Save profile via PATCH /meProfile (mirrors iOS saveProfile)
+    // Only sends fields that have actually been changed
     suspend fun saveProfile() {
         withContext(Dispatchers.IO) {
             try {
@@ -214,6 +228,45 @@ fun ProfileScreen(
                     withContext(Dispatchers.Main) {
                         errorMessage = "Authentication required"
                         showErrorDialog = true
+                    }
+                    return@withContext
+                }
+
+                // Build payload — only include changed fields (mirrors iOS change tracking)
+                val jsonObject = JSONObject()
+
+                if (name != originalName) {
+                    jsonObject.put("name", name)
+                }
+                if (service != originalService) {
+                    jsonObject.put("service", service)
+                }
+                if (profileImageUrl != originalProfileImageUrl) {
+                    jsonObject.put("profileImage", profileImageUrl)
+                }
+                if (flatFee != originalFlatFee) {
+                    jsonObject.put("flatFee", flatFee.replace("$", ""))
+                }
+                if (hourlyRate != originalHourlyRate) {
+                    jsonObject.put("hourlyRate", hourlyRate.replace("$", ""))
+                }
+                if (about != originalAbout) {
+                    jsonObject.put("about", about.trim())
+                }
+                if (badgeNames != originalBadges) {
+                    // Send badges as array of objects (matches iOS format)
+                    val badgesArray = org.json.JSONArray()
+                    badgeNames.split(",").map { it.trim() }.filter { it.isNotEmpty() }.forEach { badge ->
+                        badgesArray.put(JSONObject().put("name", badge).put("color", "#85D9C4"))
+                    }
+                    jsonObject.put("badges", badgesArray)
+                }
+
+                // If no fields changed, don't make the request (matches iOS)
+                if (jsonObject.length() == 0) {
+                    withContext(Dispatchers.Main) {
+                        isSaving = false
+                        showSuccessDialog = true
                     }
                     return@withContext
                 }
@@ -228,22 +281,8 @@ fun ProfileScreen(
                     readTimeout = 15000
                 }
 
-                val payload = JSONObject().apply {
-                    put("firstName", firstName)
-                    put("lastName", lastName)
-                    put("email", email)
-                    put("phoneNumber", phoneNumber)
-                    put("flatFee", flatFee)
-                    put("hourlyRate", hourlyRate)
-                    put("about", about)
-                    put("badges", org.json.JSONArray(selectedBadges))
-                    if (profileImageUrl.isNotBlank()) {
-                        put("profileImage", profileImageUrl)
-                    }
-                }
-
                 conn.outputStream.use { os ->
-                    os.write(payload.toString().toByteArray(Charsets.UTF_8))
+                    os.write(jsonObject.toString().toByteArray(Charsets.UTF_8))
                 }
 
                 val statusCode = conn.responseCode
@@ -252,10 +291,18 @@ fun ProfileScreen(
                 withContext(Dispatchers.Main) {
                     isSaving = false
                     if (statusCode == 200) {
-                        // Update AuthManager with new name and profile image
-                        AuthManager.setUserFirstName(firstName)
-                        AuthManager.setUserLastName(lastName)
+                        // Update originals to new values
+                        originalName = name
+                        originalService = service
+                        originalProfileImageUrl = profileImageUrl
+                        originalFlatFee = flatFee
+                        originalHourlyRate = hourlyRate
+                        originalAbout = about
+                        originalBadges = badgeNames
+
+                        // Persist profile image to AuthManager
                         AuthManager.setProfileImageUrl(profileImageUrl)
+
                         showSuccessDialog = true
                     } else {
                         errorMessage = "Save failed: HTTP $statusCode"
@@ -275,7 +322,7 @@ fun ProfileScreen(
     // Trigger fetch on load
     remember {
         scope.launch { fetchProfile() }
-        Any() // Return a non-unit value
+        Any()
     }
 
     // ── UI ──────────────────────────────────────────────────
@@ -291,325 +338,359 @@ fun ProfileScreen(
             }
         }
     } else {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.White)
-        ) {
-            // ── Top Bar: Back + Save ──
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back",
-                        tint = OrangeTitle,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Text(
-                    text = "Edit Profile",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = OrangeSecNavyBlue
-                )
-                TextButton(
-                    onClick = {
-                        isSaving = true
-                        scope.launch { saveProfile() }
-                    },
-                    enabled = !isSaving
-                ) {
-                    if (isSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = OrangeTitle
-                        )
-                    } else {
-                        Text(
-                            text = "Save",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = OrangeTitle
-                        )
-                    }
-                }
-            }
-
-            HorizontalDivider(color = OrangeSec6, thickness = 1.dp)
-
-            // ── Scrollable Content ──
+        Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp)
+                    .background(Color.White)
             ) {
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // MARK: - Profile Image
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
+                // ── Top Bar: Back + "Edit Profile" + Save (matches iOS) ──
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(3.dp)
+                        .background(Color.White)
+                        .padding(horizontal = 15.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier.clickable { imagePickerLauncher.launch("image/*") }
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = OrangeTitle,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Text(
+                        text = "Edit Profile",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = OrangeSecNavyBlue
+                    )
+                    TextButton(
+                        onClick = {
+                            isSaving = true
+                            scope.launch { saveProfile() }
+                        },
+                        enabled = !isSaving
                     ) {
-                        // Profile image or placeholder
-                        Box(
-                            modifier = Modifier
-                                .size(100.dp)
-                                .clip(CircleShape)
-                                .background(OrangeSec6),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            val displayUri = selectedImageUri
-                            if (displayUri != null) {
-                                AsyncImage(
-                                    model = displayUri,
-                                    contentDescription = "Profile Photo",
-                                    modifier = Modifier
-                                        .size(100.dp)
-                                        .clip(CircleShape),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else if (profileImageUrl.isNotBlank()) {
-                                AsyncImage(
-                                    model = profileImageUrl,
-                                    contentDescription = "Profile Photo",
-                                    modifier = Modifier
-                                        .size(100.dp)
-                                        .clip(CircleShape),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = "Profile",
-                                    tint = Color.Gray,
-                                    modifier = Modifier.size(60.dp)
-                                )
-                            }
-                        }
-                        // Camera icon overlay
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .offset(y = 4.dp)
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(OrangeTitle.copy(alpha = 0.8f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CameraAlt,
-                                contentDescription = "Change Photo",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
+                        if (isSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = OrangeTitle
                             )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Header + subtitle
-                Text(
-                    text = "Edit Profile",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = OrangeSec7
-                )
-                Text(
-                    text = "Update your profile information to keep your details current and accurate.",
-                    fontSize = 14.sp,
-                    color = OrangeSec2
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-                HorizontalDivider(color = OrangeSec6)
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // MARK: - Basic Information Section
-                SectionCard(title = "Basic Information", icon = Icons.Default.Person) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    ProfileField(label = "First Name", value = firstName, onValueChange = { firstName = it })
-                    Spacer(modifier = Modifier.height(10.dp))
-                    ProfileField(label = "Last Name", value = lastName, onValueChange = { lastName = it })
-                    Spacer(modifier = Modifier.height(10.dp))
-                    ProfileField(label = "Email", value = email, onValueChange = { email = it })
-                    Spacer(modifier = Modifier.height(10.dp))
-                    ProfileField(label = "Phone Number", value = phoneNumber, onValueChange = { input ->
-                        phoneNumber = formatPhoneNumber(input)
-                    }, placeholder = "(123) 456-7890")
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // MARK: - Pricing Section
-                SectionCard(title = "Pricing", icon = Icons.Default.AttachMoney) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    ProfileField(label = "Flat Fee", value = flatFee, onValueChange = { input ->
-                        flatFee = input.filter { it.isDigit() || it == '.' }
-                    })
-                    Spacer(modifier = Modifier.height(10.dp))
-                    ProfileField(label = "Hourly Rate", value = hourlyRate, onValueChange = { input ->
-                        hourlyRate = input.filter { it.isDigit() || it == '.' }
-                    })
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // MARK: - About Section
-                Text(
-                    text = "About",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = OrangeSecNavyBlue
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Surface(
-                    shape = RoundedCornerShape(15.dp),
-                    color = Color.White,
-                    shadowElevation = 4.dp,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(
-                            text = "About You",
-                            fontSize = 14.sp,
-                            color = OrangeSec2
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        OutlinedTextField(
-                            value = about,
-                            onValueChange = { if (it.length <= 500) about = it },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp),
-                            placeholder = {
-                                Text(
-                                    "Tell customers about yourself, your experience, and what makes you a great service provider...",
-                                    color = Color.Gray.copy(alpha = 0.6f),
-                                    fontSize = 14.sp
-                                )
-                            },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = OrangeSec5,
-                                unfocusedBorderColor = OrangeSec5,
-                                focusedContainerColor = OrangeSec6,
-                                unfocusedContainerColor = OrangeSec6
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            textStyle = androidx.compose.ui.text.TextStyle(
-                                fontSize = 16.sp,
-                                color = OrangeSec7
-                            )
-                        )
-                        Text(
-                            text = "${about.length}/500 characters",
-                            fontSize = 12.sp,
-                            color = OrangeSec2,
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.End
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // MARK: - Badges Section
-                Text(
-                    text = "Badges",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = OrangeSecNavyBlue
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Surface(
-                    shape = RoundedCornerShape(15.dp),
-                    color = Color.White,
-                    shadowElevation = 4.dp,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        if (selectedBadges.isNotEmpty()) {
+                        } else {
                             Text(
-                                text = "Selected Badges",
-                                fontSize = 14.sp,
+                                text = "Save",
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = OrangeSec7
+                                color = OrangeTitle
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            // Display badges as chips
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.fillMaxWidth()
+                        }
+                    }
+                }
+
+                // ── Scrollable Content (matches iOS ScrollView) ──
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Profile Image Section (matches iOS profile image with camera overlay)
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box {
+                            // Profile image circle
+                            Box(
+                                modifier = Modifier
+                                    .size(100.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Gray.copy(alpha = 0.3f)),
+                                contentAlignment = Alignment.Center
                             ) {
-                                selectedBadges.forEach { badge ->
-                                    Surface(
-                                        shape = RoundedCornerShape(16.dp),
-                                        color = OrangeTitle.copy(alpha = 0.1f),
-                                        modifier = Modifier.height(32.dp)
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.padding(horizontal = 12.dp)
-                                        ) {
-                                            Text(
-                                                text = badge,
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = OrangeTitle
-                                            )
-                                        }
-                                    }
+                                if (profileImageUrl.isNotBlank()) {
+                                    AsyncImage(
+                                        model = profileImageUrl,
+                                        contentDescription = "Profile Photo",
+                                        modifier = Modifier
+                                            .size(100.dp)
+                                            .clip(CircleShape),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = "Profile",
+                                        tint = Color.Gray,
+                                        modifier = Modifier.size(60.dp)
+                                    )
                                 }
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-                        // Add badges placeholder
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = OrangeSec6,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center,
+                            // Camera icon overlay (matches iOS camera.fill)
+                            Box(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { /* TODO: Badge selector */ }
-                                    .padding(vertical = 12.dp, horizontal = 16.dp)
+                                    .align(Alignment.BottomCenter)
+                                    .offset(y = 16.dp)
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(OrangeTitle.copy(alpha = 0.8f)),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = "+ Add Badges",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = OrangeTitle
+                                Icon(
+                                    imageVector = Icons.Default.CameraAlt,
+                                    contentDescription = "Change Photo",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Badges help customers understand your qualifications and services",
-                            fontSize = 12.sp,
-                            color = OrangeSec2,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
                     }
-                }
 
-                Spacer(modifier = Modifier.height(40.dp))
+                    Spacer(modifier = Modifier.height(30.dp))
+
+                    // Header (matches iOS "Edit Profile" heading)
+                    Text(
+                        text = "Edit Profile",
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = OrangeSec7,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+
+                    // Instructions (matches iOS subtitle)
+                    Text(
+                        text = "Update your profile information to keep your details current and accurate.",
+                        fontSize = 15.sp,
+                        color = OrangeSec2,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    // Form sections inside a rounded container (matches iOS VStack with background)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(OrangeSec6, RoundedCornerShape(10.dp))
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        // ── Basic Information Section (matches iOS) ──
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = "Basic Info",
+                                    tint = OrangeTitle,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Basic Information",
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = OrangeSec7
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(15.dp))
+
+                            // Professional Name (matches iOS "Professional Name")
+                            ProfileInputField(
+                                placeholder = "Professional Name",
+                                value = name,
+                                onValueChange = { name = it }
+                            )
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Service Type (matches iOS "Service Type")
+                            ProfileInputField(
+                                placeholder = "Service Type",
+                                value = service,
+                                onValueChange = { service = it }
+                            )
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Profile Image URL (matches iOS "Profile Image URL")
+                            ProfileInputField(
+                                placeholder = "Profile Image URL",
+                                value = profileImageUrl,
+                                onValueChange = { profileImageUrl = it }
+                            )
+                        }
+
+                        HorizontalDivider()
+
+                        // ── Pricing Section (matches iOS) ──
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.AttachMoney,
+                                    contentDescription = "Pricing",
+                                    tint = OrangeTitle,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Pricing",
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = OrangeSec7
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(15.dp))
+
+                            // Flat Fee (matches iOS "Flat Fee (e.g. $45)")
+                            ProfileInputField(
+                                placeholder = "Flat Fee (e.g. $45)",
+                                value = flatFee,
+                                onValueChange = { flatFee = it }
+                            )
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Hourly Rate (matches iOS "Hourly Rate (e.g. $50/hr)")
+                            ProfileInputField(
+                                placeholder = "Hourly Rate (e.g. $50/hr)",
+                                value = hourlyRate,
+                                onValueChange = { hourlyRate = it }
+                            )
+                        }
+
+                        HorizontalDivider()
+
+                        // ── About Section (matches iOS with icon header) ──
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.ChatBubble,
+                                    contentDescription = "About",
+                                    tint = OrangeTitle,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "About",
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = OrangeSec7
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(15.dp))
+
+                            // Multi-line text field (matches iOS TextEditor, no char limit)
+                            OutlinedTextField(
+                                value = about,
+                                onValueChange = { about = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(100.dp),
+                                placeholder = {
+                                    Text(
+                                        "Tell customers about your services...",
+                                        color = Color.Gray.copy(alpha = 0.6f),
+                                        fontSize = 17.sp
+                                    )
+                                },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color.Transparent,
+                                    unfocusedBorderColor = Color.Transparent,
+                                    focusedContainerColor = Color.White,
+                                    unfocusedContainerColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                textStyle = androidx.compose.ui.text.TextStyle(
+                                    fontSize = 17.sp,
+                                    color = OrangeSec7
+                                )
+                            )
+                        }
+
+                        HorizontalDivider()
+
+                        // ── Badges Section (matches iOS — comma-separated text field) ──
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = "Badges",
+                                    tint = OrangeTitle,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Badges",
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = OrangeSec7
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = "Separate badge names with commas",
+                                fontSize = 14.sp,
+                                color = OrangeSec2
+                            )
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Comma-separated text field (matches iOS TextField for badges)
+                            ProfileInputField(
+                                placeholder = "e.g. Background Check Cleared, Certified",
+                                value = badgeNames,
+                                onValueChange = { badgeNames = it }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // ── Save Changes Button (matches iOS bottom button) ──
+                    Button(
+                        onClick = {
+                            isSaving = true
+                            scope.launch { saveProfile() }
+                        },
+                        enabled = !isSaving,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = OrangeTitle,
+                            disabledContainerColor = OrangeTitle.copy(alpha = 0.5f)
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        if (isSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White
+                            )
+                        } else {
+                            Text(
+                                text = "Save Changes",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(40.dp))
+                }
             }
         }
     }
@@ -643,86 +724,34 @@ fun ProfileScreen(
     }
 }
 
-// MARK: - Section Card (grouped fields with icon header)
+// MARK: - Profile Input Field (matches iOS TextField with shadow styling)
 
 @Composable
-private fun SectionCard(
-    title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    content: @Composable () -> Unit
-) {
-    Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = OrangeSec6,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = title,
-                    tint = OrangeTitle,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = title,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = OrangeSec7
-                )
-            }
-            content()
-        }
-    }
-}
-
-// MARK: - Profile Field (label + text input)
-
-@Composable
-private fun ProfileField(
-    label: String,
+private fun ProfileInputField(
+    placeholder: String,
     value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String = ""
+    onValueChange: (String) -> Unit
 ) {
-    Column {
-        Text(
-            text = label,
-            fontSize = 14.sp,
-            color = OrangeSec2
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = {
+            Text(placeholder, color = Color.Gray.copy(alpha = 0.6f), fontSize = 17.sp)
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(2.dp, RoundedCornerShape(8.dp)),
+        singleLine = true,
+        shape = RoundedCornerShape(8.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = Color.White,
+            unfocusedContainerColor = Color.White,
+            focusedBorderColor = Color.Transparent,
+            unfocusedBorderColor = Color.Transparent
+        ),
+        textStyle = androidx.compose.ui.text.TextStyle(
+            fontSize = 17.sp,
+            color = OrangeSec7
         )
-        Spacer(modifier = Modifier.height(4.dp))
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            placeholder = if (placeholder.isNotBlank()) {
-                { Text(placeholder, color = Color.Gray, fontSize = 16.sp) }
-            } else null,
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            shape = RoundedCornerShape(8.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent
-            ),
-            textStyle = androidx.compose.ui.text.TextStyle(
-                fontSize = 16.sp,
-                color = OrangeSec7
-            )
-        )
-    }
-}
-
-// Phone number formatter (matches iOS formatPhoneNumber)
-private fun formatPhoneNumber(input: String): String {
-    val digits = input.filter { it.isDigit() }.take(10)
-    return buildString {
-        for ((i, d) in digits.withIndex()) {
-            if (i == 3 || i == 6) append('-')
-            append(d)
-        }
-    }
+    )
 }
